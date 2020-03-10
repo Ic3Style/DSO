@@ -20,6 +20,8 @@ void disk_interrupt(int sig);
 /* Array of state thread control blocks: the process allows a maximum of N threads */
 static TCB t_state[N];
 
+struct queue * ready; // Cola de listos para RR.
+
 /* Current running thread */
 static TCB* running;
 static int current = 0;
@@ -51,6 +53,8 @@ void init_mythreadlib()
 {
   int i;
 
+  ready = queue_new();
+
   /* Create context for the idle thread */
   if(getcontext(&idle.run_env) == -1)
   {
@@ -78,6 +82,7 @@ void init_mythreadlib()
   t_state[0].state = INIT;
   t_state[0].priority = LOW_PRIORITY;
   t_state[0].ticks = QUANTUM_TICKS;
+
 
   if(getcontext(&t_state[0].run_env) == -1)
   {
@@ -107,10 +112,7 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
   if (!init) { init_mythreadlib(); init=1;}
 
   for (i=0; i<N; i++)
-    if (t_state[i].state == FREE){
-      printf("Hueco encontrado en la posicion %d \t", i);
-      break;
-    }
+    if (t_state[i].state == FREE) break;
 
   if (i == N) return(-1);
 
@@ -127,6 +129,7 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
   t_state[i].remaining_ticks = t_state[i].execution_total_ticks;
   t_state[i].run_env.uc_stack.ss_sp = (void *)(malloc(STACKSIZE));
 
+
   if(t_state[i].run_env.uc_stack.ss_sp == NULL)
   {
     printf("*** ERROR: thread failed to get stack space\n");
@@ -134,13 +137,17 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
   }
 
   t_state[i].tid = i;
-
-
   t_state[i].run_env.uc_stack.ss_size = STACKSIZE;
   t_state[i].run_env.uc_stack.ss_flags = 0;
   makecontext(&t_state[i].run_env, fun_addr,2,seconds);
 
+  struct tcb *thread_copy = &t_state[i]; //CUIDADO
+
   printf("Creado hilo con ID: %d, tiempo: %d segundos, prioridad: %d\n", i, seconds, priority);
+
+  enqueue(ready, thread_copy);
+
+  printf("Encolado el hilo con ID: %d \t", i);
 
   return i;
 }
@@ -165,10 +172,9 @@ void mythread_exit() {
   int tid = mythread_gettid();
 
   printf("*** THREAD %d FINISHED\n", tid);
+
   t_state[tid].state = FREE;
   free(t_state[tid].run_env.uc_stack.ss_sp);
-   int tiempo = t_state[tid].execution_total_ticks;
-   printf("tiempo ejecución %d Hilo %d", tiempo, tid);
 
   TCB* next = scheduler();
   activator(next);
@@ -212,15 +218,21 @@ int mythread_gettid(){
 
 TCB* scheduler()
 {
-  int i;
-  for(i=0; i<N; i++)
-  {
-    if (t_state[i].state == INIT)
-    {
-      current = i;
-	    return &t_state[i];
-    }
-  }
+  // int i;
+  // for(i=0; i<N; i++)
+  // {
+  //   if (t_state[i].state == INIT)
+  //   {
+  //     current = i;
+	//     return &t_state[i];
+  //   }
+  // }
+  if(!queue_empty(ready)){
+    printf("Desencola elemento de Ready \n");
+    return dequeue(ready);
+
+  } //Else: la cola está vacía.
+
   printf("mythread_free: No thread in the system\nExiting...\n");
   exit(1);
 }

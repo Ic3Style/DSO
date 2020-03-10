@@ -11,7 +11,7 @@ struct queue* enqueue(struct queue* s, void * i)
   if( NULL == p )
     {
       fprintf(stderr, "IN %s, %s: malloc() failed\n", __FILE__, "list_add");
-      return s; 
+      return s;
     }
   p->data = i;
   p->next = NULL;
@@ -40,6 +40,7 @@ struct queue* enqueue(struct queue* s, void * i)
       s->tail = p;
     }
   return s;
+  printf("Elemento encolado en Ready \n");
 }
 
 struct queue* sort_queue_by_execution_time(struct queue* s){
@@ -61,12 +62,12 @@ struct queue* sort_queue_by_execution_time(struct queue* s){
 
 struct queue* sorted_enqueue(struct queue* s, void * tcb, int sort)
 {
-   
+
 	struct my_struct* p = malloc(sizeof(struct my_struct) );
 	if( NULL == p )
     {
       fprintf(stderr, "IN %s, %s: malloc() failed\n", __FILE__, "list_add");
-      return s; 
+      return s;
     }
 
 	p->data = (TCB*) tcb;
@@ -156,19 +157,19 @@ void* dequeue( struct queue* s )
   return ret;
 }
 
-/* Search an element and remove it from queue if found 
-   This function can be specialized for comparing the contents of structures s->data and data instead of pointers to structures 
+/* Search an element and remove it from queue if found
+   This function can be specialized for comparing the contents of structures s->data and data instead of pointers to structures
 */
 void* queue_find_remove(struct queue* s, void * data )
 {
   void * ret;
- 
+
  if( NULL == s )
    {
      //printf("List is empty\n");
      return NULL;
    }
- else 
+ else
    if( NULL == s->head && NULL == s->tail )
      {
        //printf("Well, List is empty\n");
@@ -180,7 +181,7 @@ void* queue_find_remove(struct queue* s, void * data )
        printf("One of the head/tail is empty while other is not \n");
        return NULL;
      }
- 
+
  if ( s->head->data == data) {
    ret = data;
    if (s->head == s->tail){
@@ -192,24 +193,24 @@ void* queue_find_remove(struct queue* s, void * data )
      s->head = s->head->next;
      free(aux);
    }
-   return ret; 
+   return ret;
  }
  else {
    struct my_struct* aux;
-   
+
    for ( aux = s->head; aux->next && (aux->next->data != data); aux = aux->next);
    if (aux->next == NULL)
      return NULL;
    else {
      struct my_struct* aux2 =  aux->next;
-     ret = aux->next->data; 
+     ret = aux->next->data;
      if (aux->next->next == NULL )  // last element contains the searched data
        s->tail = aux;
      aux->next = aux->next->next;
      free(aux2);
      return ret;
    }
- } 
+ }
 }
 
 int queue_empty ( struct queue* s ) { return (s->head == NULL); }
@@ -242,9 +243,8 @@ void queue_print(struct queue* ps )
 /* This function needs to be specialized depending on the content of p->data */
 void queue_print_element(struct my_struct* p )
 {
-  if( p ) 
+  if( p )
     printf("\t\tp->data pointer=%ld \n", (long) (p->data));
   else
       printf("Can not print NULL struct \n");
 }
-

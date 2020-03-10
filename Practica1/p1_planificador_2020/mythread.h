@@ -12,9 +12,9 @@
 #include "interrupt.h"
 
 #define N 1000
-#define FREE 0
-#define INIT 1
-#define WAITING 2
+#define FREE 0 // Significa que el
+#define INIT 1 //Ejecutando
+#define WAITING 2 //Bloqueado
 #define IDLE 3
 
 #define STACKSIZE 10000
@@ -47,4 +47,3 @@ int seconds_to_ticks(int seconds);
 static inline int data_in_page_cache() { return rand() & 0x01; }
 
 #endif
-
