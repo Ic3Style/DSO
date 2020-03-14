@@ -40,7 +40,6 @@ struct queue* enqueue(struct queue* s, void * i)
       s->tail = p;
     }
   return s;
-  printf("Elemento encolado en Ready \n");
 }
 
 struct queue* sort_queue_by_execution_time(struct queue* s){
@@ -82,7 +81,6 @@ struct queue* sorted_enqueue(struct queue* s, void * tcb, int sort)
   else if( NULL == s->head && NULL == s->tail )
     {
       //printf("Empty list, adding p->data: %d\n\n", p->data);
-      //printf("Inserto el primer elemento\n");
       s->head = s->tail = p;
       return s;
     }
@@ -96,16 +94,16 @@ struct queue* sorted_enqueue(struct queue* s, void * tcb, int sort)
     {
       struct my_struct * aux = s->head;
       struct my_struct * aux1 = NULL;
-      //TCB * pointer_tcb = (TCB *) aux->data;
-      //TCB * insert_pointer_tcb = (TCB *) p->data;
+
       int inserted = 0;
       while(aux && !inserted){
-          if(p->sort < aux->sort || aux == s->tail) {
+          if(p->sort <= aux->sort || aux == s->tail) {
               inserted = 1;
-              if (aux == s->head && p->sort < aux->sort) {
+              if (aux == s->head && p->sort <= aux->sort) {
                   p->next = aux;
                   s->head = p;
               } else if (aux == s->tail && p->sort > aux->sort) {
+              //}else if (aux == s->tail) {
                   aux->next = p;
                   p->next = NULL;
                   s->tail = p;
@@ -113,13 +111,21 @@ struct queue* sorted_enqueue(struct queue* s, void * tcb, int sort)
                   p->next = aux;
                   aux1->next = p;
               }
-
-              aux1 = aux;
-              aux = aux->next;
           }
+          aux1 = aux;
+          aux = aux->next;
       }
     }
 
+		/*DEBUG INFO*/
+		/*struct my_struct * st_1 = s->head;
+		int i = 0;
+		while(st_1 != NULL){
+			TCB * tcb = (TCB*) st_1->data;
+			printf("ORDERED :: %d ---> data :: %d\n",i,tcb->remaining_ticks);
+			i++;
+			st_1 = st_1->next;
+		}*/
 
 
   return s;

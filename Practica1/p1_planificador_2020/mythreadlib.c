@@ -191,6 +191,9 @@ void mythread_setpriority(int priority)
 {
   int tid = mythread_gettid();
   t_state[tid].priority = priority;
+  if(priority ==  HIGH_PRIORITY){
+    t_state[tid].remaining_ticks = 195;
+  }
 }
 
 /* Returns the priority of the calling thread */
