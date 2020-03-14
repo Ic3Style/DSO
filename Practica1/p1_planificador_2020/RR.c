@@ -15,7 +15,7 @@ TCB* scheduler();
 void activator();
 void timer_interrupt(int sig);
 void disk_interrupt(int sig);
-
+int global_tick = 0;
 
 /* Array of state thread control blocks: the process allows a maximum of N threads */
 static TCB t_state[N];
@@ -42,8 +42,10 @@ void function_thread(int sec)
     //time_t end = time(NULL) + sec;
     while(running->remaining_ticks)
     {
+      // printf("\nEl running es: ID %d", running->tid);
       //do something
     }
+     // printf("Hilo ID: %d, procede a exit", mythread_gettid());
     mythread_exit();
 }
 
@@ -129,6 +131,7 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
   t_state[i].remaining_ticks = t_state[i].execution_total_ticks;
   t_state[i].run_env.uc_stack.ss_sp = (void *)(malloc(STACKSIZE));
 
+  t_state[i].ticks = QUANTUM_TICKS; //metemos la rodaja al proceso
 
   if(t_state[i].run_env.uc_stack.ss_sp == NULL)
   {
@@ -143,8 +146,9 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
 
   struct tcb *thread_copy = &t_state[i]; //CUIDADO
 
-  printf("Creado hilo con ID: %d, tiempo: %d segundos, prioridad: %d\n", i, seconds, priority);
+  printf("\nCreado hilo con ID: %d, tiempo: %d segundos, prioridad: %d\n", i, seconds, priority);
 
+  // printf("Check del hilo: ID %d", thread_copy->tid);
   enqueue(ready, thread_copy);
 
   printf("Encolado el hilo con ID: %d \t", i);
@@ -171,10 +175,13 @@ void disk_interrupt(int sig)
 void mythread_exit() {
   int tid = mythread_gettid();
 
-  printf("*** THREAD %d FINISHED\n", tid);
+  printf("\n*** THREAD %d FINISHED\n", tid);
 
   t_state[tid].state = FREE;
   free(t_state[tid].run_env.uc_stack.ss_sp);
+
+  int tiempo = t_state[tid].execution_total_ticks;
+  printf("tiempo ejecución %d Hilo %d\n", tiempo, tid);
 
   TCB* next = scheduler();
   activator(next);
@@ -197,6 +204,9 @@ void mythread_setpriority(int priority)
 {
   int tid = mythread_gettid();
   t_state[tid].priority = priority;
+  if(priority ==  HIGH_PRIORITY){
+    t_state[tid].remaining_ticks = 195;
+  }
 }
 
 /* Returns the priority of the calling thread */
@@ -218,18 +228,22 @@ int mythread_gettid(){
 
 TCB* scheduler()
 {
-  // int i;
-  // for(i=0; i<N; i++)
-  // {
-  //   if (t_state[i].state == INIT)
-  //   {
-  //     current = i;
-	//     return &t_state[i];
-  //   }
-  // }
+  int i;
+  for(i=0; i<N; i++)
+  {
+    if (t_state[i].state == INIT)
+    {
+      current = i;
+	    // return &t_state[i];
+    }
+  }
   if(!queue_empty(ready)){
-    printf("Desencola elemento de Ready \n");
-    return dequeue(ready);
+
+    struct tcb *thread_copy = dequeue(ready);
+
+    printf("Desencola elemento de Ready, ID: %d", thread_copy->tid);
+
+    return thread_copy;
 
   } //Else: la cola está vacía.
 
@@ -241,8 +255,31 @@ TCB* scheduler()
 /* Timer interrupt */
 void timer_interrupt(int sig)
 {
+  if(global_tick%5==0)
+  printf("\nTICK: %d", global_tick);
+  global_tick++;
+  if(running != NULL){
+  running->ticks--;
+  if(running->ticks == 0)
+      {
+        printf("\n Proceso ID: %d acaba su rodaja\n", running->tid);
+
+        running->ticks = QUANTUM_TICKS;
+        TCB *aux = running;
+        aux->state = INIT;
+        void disable_interrupt();
+        enqueue(ready, aux);
+        void enable_interrupt();
 
 
+        TCB *next = scheduler();
+        running = next;
+        printf("\n Se sustituye por ID: %d", next->tid);
+        activator(next);
+      }
+    }
+
+// printf("\nEjecutando interrupt hw");
 }
 
 /* Activator */

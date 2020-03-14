@@ -108,7 +108,7 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
 
   for (i=0; i<N; i++)
     if (t_state[i].state == FREE){
-      printf("Hueco encontrado en la posicion %d \t", i);
+      // printf("Hueco encontrado en la posicion %d \t", i);
       break;
     }
 
