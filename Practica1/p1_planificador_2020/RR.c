@@ -149,7 +149,10 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
   printf("\nCreado hilo con ID: %d, tiempo: %d segundos, prioridad: %d\n", i, seconds, priority);
 
   // printf("Check del hilo: ID %d", thread_copy->tid);
+
+  disable_interrupt();
   enqueue(ready, thread_copy);
+  enable_interrupt();
 
   printf("Encolado el hilo con ID: %d \t", i);
 
@@ -239,7 +242,10 @@ TCB* scheduler()
   }
   if(!queue_empty(ready)){
 
+
+    disable_interrupt();
     struct tcb *thread_copy = dequeue(ready);
+    enable_interrupt();
 
     printf("Desencola elemento de Ready, ID: %d", thread_copy->tid);
 
@@ -267,9 +273,9 @@ void timer_interrupt(int sig)
         running->ticks = QUANTUM_TICKS;
         TCB *aux = running;
         aux->state = INIT;
-        void disable_interrupt();
+        disable_interrupt();
         enqueue(ready, aux);
-        void enable_interrupt();
+        enable_interrupt();
 
 
         TCB *next = scheduler();
