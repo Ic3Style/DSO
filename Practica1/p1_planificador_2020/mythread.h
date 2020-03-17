@@ -13,9 +13,11 @@
 
 #define N 1000
 #define FREE 0 // Significa que el
-#define INIT 1 //Ejecutando
+#define INIT 1 //Listo en la cola
 #define WAITING 2 //Bloqueado
 #define IDLE 3
+
+#define RUNNING 4 //Ejectuando
 
 #define STACKSIZE 10000
 #define QUANTUM_TICKS 40 //Quantum /TICKS
