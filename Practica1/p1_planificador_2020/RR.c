@@ -265,7 +265,7 @@ TCB* scheduler()
     enable_interrupt();
     //enable_disk_interrupt();
 
-    printf("Desencola elemento de Ready, ID: %d", thread_copy->tid);
+    // printf("Desencola elemento de Ready, ID: %d", thread_copy->tid);
 
     return thread_copy;
 
