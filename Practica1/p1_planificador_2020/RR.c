@@ -43,7 +43,7 @@ static void idle_function()
 void function_thread(int sec)
 {
     //time_t end = time(NULL) + sec;
-    while(running->remaining_ticks>0)
+    while(running->remaining_ticks)
     {
     // printf("\nEl running es: ID %d, state: %d", running->tid, running->state);
       //do something
@@ -105,7 +105,7 @@ void init_mythreadlib()
   running = &t_state[0];
 
   /* Initialize disk and clock interrupts */
-  init_disk_interrupt();
+  // init_disk_interrupt();
   init_interrupt();
 }
 
@@ -135,7 +135,12 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
   t_state[i].remaining_ticks = t_state[i].execution_total_ticks;
   t_state[i].run_env.uc_stack.ss_sp = (void *)(malloc(STACKSIZE));
 
-  t_state[i].ticks = QUANTUM_TICKS; //metemos la rodaja al proceso
+  if (QUANTUM_TICKS < t_state[i].remaining_ticks) {
+    t_state[i].ticks =  QUANTUM_TICKS;
+  }
+  else{
+    t_state[i].ticks = t_state[i].remaining_ticks;
+  } //metemos la rodaja al proceso
 
   if(t_state[i].run_env.uc_stack.ss_sp == NULL)
   {
@@ -148,7 +153,7 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
   t_state[i].run_env.uc_stack.ss_flags = 0;
   makecontext(&t_state[i].run_env, fun_addr,2,seconds);
 
-  struct tcb *thread_copy = &t_state[i]; //CUIDADO
+  // struct tcb *thread_copy = &t_state[i]; //CUIDADO
 
   printf("\nCreado hilo con ID: %d, tiempo: %d segundos, prioridad: %d\n", i, seconds, priority);
 
@@ -156,7 +161,7 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
 
   disable_interrupt();
   //disable_disk_interrupt();
-  enqueue(ready, thread_copy);
+  enqueue(ready, &t_state[i]);
   enable_interrupt();
   //enable_disk_interrupt();
 
@@ -185,12 +190,13 @@ void mythread_exit() {
   int tid = mythread_gettid();
 
   printf("\n*** THREAD %d FINISHED\n", tid);
-
   t_state[tid].state = FREE;
   free(t_state[tid].run_env.uc_stack.ss_sp);
 
   int tiempo = t_state[tid].execution_total_ticks;
   printf("tiempo ejecución %d Hilo %d\n", tiempo, tid);
+
+  old_running = running;
 
   running = scheduler(); //MODIFICADO
   running->state = RUNNING;
@@ -203,6 +209,8 @@ void mythread_timeout(int tid) {
     printf("*** THREAD %d EJECTED\n", tid);
     t_state[tid].state = FREE;
     free(t_state[tid].run_env.uc_stack.ss_sp);
+
+    // old_running = running;
 
     running = scheduler(); //MODIFICADO
     running->state = RUNNING;
@@ -272,81 +280,92 @@ TCB* scheduler()
 void timer_interrupt(int sig)
 {
   if(global_tick%10==0){
-    printf("\nTICK: %d\t", global_tick);
-    printf("Le quedan %d TICKS\t", running->remaining_ticks);
+    // printf("\nTICK: %d\t", global_tick);
+    // printf("\nLe quedan %d TICKS\t", running->remaining_ticks);
   }
 
   global_tick++;
 
-  if(running->state == RUNNING){
+  // if(running->remaining_ticks <= 0){
+  //   // printf("\n\nENTRA CONIO\n");
+  //   // mythread_exit();
+  //   // old_running = running;
+  // }
+  // else{
+    if(running->state == RUNNING){
 
-    running->ticks--; //se reduce su rodaja
-    running->remaining_ticks--; //se reduce su ejecucion global
+      running->ticks--; //se reduce su rodaja
+      running->remaining_ticks--; //se reduce su ejecucion global
+// printf("\nLe quedan %d TICKS\t", running->remaining_ticks);
+    if(running->remaining_ticks == 0){
+      // printf("\n\nENTRA CONIO\n");
+      // mythread_exit();
+      // old_running = running;
+    }
+    else{
+      if(running->ticks <= 0){
+          // printf("\n Proceso ID: %d acaba su rodaja\n", running->tid);
 
-    if(running->ticks <= 0){
-        printf("\n Proceso ID: %d acaba su rodaja\n", running->tid);
+          running->state = INIT;
+          if (QUANTUM_TICKS < running->remaining_ticks) {
+            running->ticks =  QUANTUM_TICKS;
+          }
+          else{
+            running->ticks = running->remaining_ticks;
+          }
 
-        running->state = INIT;
-        running->ticks = QUANTUM_TICKS;
+          if(running->remaining_ticks > 0){
+            disable_interrupt();
+            enqueue(ready, running);
+            enable_interrupt();
+          }
 
-        if(running->remaining_ticks > 0){
-          disable_interrupt();
-          enqueue(ready, running);
-          enable_interrupt();
+          old_running = running;
+          // printf("Old_running es ID: %d\n", old_running->tid);
+
+          if(running->remaining_ticks < 0){
+            printf("Hilo ID: %d, procede a exit\n", mythread_gettid());
+            // running->state = FREE;
+            // if(running->tid == mythread_gettid())
+            mythread_timeout(running->tid);
+          }
+
+          running = scheduler();
+          running->state = RUNNING;
+          activator(running);
+
+          // printf("\n Se sustituye por ID: %d\n", running->tid);
+
         }
-
-        old_running = running;
-
-        if(running->remaining_ticks <= 0){
-          printf("Hilo ID: %d, procede a exit\n", mythread_gettid());
-          // running->state = FREE;
-          // if(running->tid == mythread_gettid())
-          mythread_timeout(running->tid);
-        }
-
-        running = scheduler();
-        running->state = RUNNING;
-        activator(running);
-
-        printf("\n Se sustituye por ID: %d\n", running->tid);
-
-        // TCB *aux = running;
-        // aux->state = INIT;
-        //
-        // //disable_disk_interrupt();
-        // if(running->remaining_ticks > 0){ // para que no encole a un proceso si ha terminado
-        //   disable_interrupt();
-        //   enqueue(ready, aux);
-        //   enable_interrupt();
-        // }
-
-        // //enable_disk_interrupt();
-        // old_running = running;
-        //   TCB *next = ();
-        //
-        //   running = next;
-        //   running->state = RUNNING;
-
-        //   activator(next);
-
-
       }
     }
-
+  // }
 // printf("\nEjecutando interrupt hw");
 }
 
 /* Activator */
 void activator(TCB* next)
 {
-
+  // printf("\nOld_running remaining_ticks: %d\n", old_running->remaining_ticks);
+  if(old_running->tid == next->tid){
+    return;
+  }
   if (old_running->remaining_ticks==0){
+      current = next->tid;
+      printf("\n*** THREAD %d TERMINATED : SETCONTEXT OF %d\n", old_running->tid, next->tid);
       setcontext (&(next->run_env));
       printf("mythread_free: After setcontext, should never get here!!...\n");
-    }else{
-
- swapcontext(&(old_running->run_env), &(next->run_env));
-}
+    }
+  else{
+   //   if (old_running->state == FREE){
+   //   setcontext (&(next->run_env));
+   // }
+   // else{
+    current = next->tid;
+    printf("\n*** SWAPCONTEXT FROM %d TO %d\n", old_running->tid, next->tid);
+     swapcontext(&(old_running->run_env), &(next->run_env));
+   // }
+  }
   //
 //
   // printf("mythread_free: After setcontext, should never get here!!...\n");
