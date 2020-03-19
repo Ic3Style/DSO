@@ -45,12 +45,10 @@ void function_thread(int sec)
     //time_t end = time(NULL) + sec;
     while(running->remaining_ticks)
     {
-    // printf("\nEl running es: ID %d, state: %d", running->tid, running->state);
-      //do something
-      // printf("\nQUEDAN %d TICKS\n", running->remaining_ticks);
+      //el hilo no hace nada mientras se ejecuta
     }
 
-     mythread_exit();
+     mythread_exit(); //al terminar su tiempo total de ejecucion hace exit
 }
 
 
@@ -59,7 +57,7 @@ void init_mythreadlib()
 {
   int i;
 
-  ready = queue_new();
+  ready = queue_new();  //creamos la cola de listos
 
   /* Create context for the idle thread */
   if(getcontext(&idle.run_env) == -1)
@@ -105,7 +103,7 @@ void init_mythreadlib()
   running = &t_state[0];
 
   /* Initialize disk and clock interrupts */
-  // init_disk_interrupt();
+  // init_disk_interrupt();    //el disco no es necesario iniciarlo en este apartado
   init_interrupt();
 }
 
@@ -135,11 +133,11 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
   t_state[i].remaining_ticks = t_state[i].execution_total_ticks;
   t_state[i].run_env.uc_stack.ss_sp = (void *)(malloc(STACKSIZE));
 
-  if (QUANTUM_TICKS < t_state[i].remaining_ticks) {
+  if (QUANTUM_TICKS < t_state[i].remaining_ticks) { //si la rodaja es menor que el tiempo que le queda de ejecucion se asigna la rodaja entera
     t_state[i].ticks =  QUANTUM_TICKS;
   }
   else{
-    t_state[i].ticks = t_state[i].remaining_ticks;
+    t_state[i].ticks = t_state[i].remaining_ticks; //sino se le asigna el tiempo que le quede
   } //metemos la rodaja al proceso
 
   if(t_state[i].run_env.uc_stack.ss_sp == NULL)
@@ -153,19 +151,11 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
   t_state[i].run_env.uc_stack.ss_flags = 0;
   makecontext(&t_state[i].run_env, fun_addr,2,seconds);
 
-  // struct tcb *thread_copy = &t_state[i]; //CUIDADO
-
-  // printf("\nCreado hilo con ID: %d, tiempo: %d segundos, prioridad: %d\n", i, seconds, priority);
-
-  // printf("Check del hilo: ID %d", thread_copy->tid);
-
   disable_interrupt();
   //disable_disk_interrupt();
-  enqueue(ready, &t_state[i]);
+  enqueue(ready, &t_state[i]);  //se encola en la lista de ready
   enable_interrupt();
   //enable_disk_interrupt();
-
-  // printf("Encolado el hilo con ID: %d \t", i);
 
   return i;
 }
@@ -193,28 +183,22 @@ void mythread_exit() {
   t_state[tid].state = FREE;
   free(t_state[tid].run_env.uc_stack.ss_sp);
 
-  // int tiempo = t_state[tid].execution_total_ticks;
-  // printf("tiempo ejecución %d Hilo %d\n", tiempo, tid);
-
-  old_running = running;
-
-  running = scheduler(); //MODIFICADO
-  running->state = RUNNING;
-  activator(running);
+  old_running = running;  //se actualiza el proceso anterior
+  running = scheduler(); //se asigna el nuevo proceso a ejecutar
+  running->state = RUNNING; //se cambia el estado del running
+  activator(running); //se cambia el contexto
 }
 
 
 void mythread_timeout(int tid) {
 
-    printf("*** THREAD %d EJECTED\n", tid);
+    printf("*** THREAD %d EJECTED\n\n", tid);
     t_state[tid].state = FREE;
     free(t_state[tid].run_env.uc_stack.ss_sp);
 
-    // old_running = running;
-
-    running = scheduler(); //MODIFICADO
-    running->state = RUNNING;
-    activator(running);
+    running = scheduler(); //se asigna el nuevo proceso a ejecutar
+    running->state = RUNNING; //se cambia el estado del running
+    activator(running); //se cambia el contexto
 }
 
 
@@ -243,36 +227,28 @@ int mythread_gettid(){
 }
 
 
-/* SJF para alta prioridad, RR para baja*/
+TCB* scheduler(){
 
-TCB* scheduler()
-{
   int i;
-  for(i=0; i<N; i++)
-  {
-    if (t_state[i].state == INIT)
-    {
+  for(i=0; i<N; i++){
+    if (t_state[i].state == INIT){
       current = i;
-	    // return &t_state[i];
     }
   }
+
   if(!queue_empty(ready)){
 
-
-    disable_interrupt();
     //disable_disk_interrupt();
-    TCB *thread_copy = dequeue(ready);
+    disable_interrupt();
+    TCB *thread_copy = dequeue(ready);  //se desencola el primer proceso de ready
     enable_interrupt();
     //enable_disk_interrupt();
-
-    // printf("Desencola elemento de Ready, ID: %d", thread_copy->tid);
 
     return thread_copy;
 
   } //Else: la cola está vacía.
 
-  // printf("mythread_free: No thread in the system\nExiting...\n");
-  printf("\n*** FINISH\n");
+  printf("*** FINISH\n"); ///no quedan hilos por ejecutar
   exit(1);
 }
 
@@ -280,94 +256,65 @@ TCB* scheduler()
 /* Timer interrupt */
 void timer_interrupt(int sig)
 {
-  if(global_tick%10==0){
-    // printf("\nTICK: %d\t", global_tick);
-    // printf("\nLe quedan %d TICKS\t", running->remaining_ticks);
-  }
 
-  global_tick++;
-
-  // if(running->remaining_ticks <= 0){
-  //   // printf("\n\nENTRA CONIO\n");
-  //   // mythread_exit();
-  //   // old_running = running;
-  // }
-  // else{
     if(running->state == RUNNING){
 
       running->ticks--; //se reduce su rodaja
       running->remaining_ticks--; //se reduce su ejecucion global
-// printf("\nLe quedan %d TICKS\t", running->remaining_ticks);
-    if(running->remaining_ticks == 0){
-      // printf("\n\nENTRA CONIO\n");
-      // mythread_exit();
-      // old_running = running;
-    }
-    else{
-      if(running->ticks <= 0){
-          // printf("\n Proceso ID: %d acaba su rodaja\n", running->tid);
 
-          running->state = INIT;
-          if (QUANTUM_TICKS < running->remaining_ticks) {
-            running->ticks =  QUANTUM_TICKS;
-          }
-          else{
-            running->ticks = running->remaining_ticks;
-          }
-
-          if(running->remaining_ticks > 0){
-            disable_interrupt();
-            enqueue(ready, running);
-            enable_interrupt();
-          }
-
-          old_running = running;
-          // printf("Old_running es ID: %d\n", old_running->tid);
-
-          if(running->remaining_ticks < 0){
-            // printf("Hilo ID: %d, procede a exit\n", mythread_gettid());
-            // running->state = FREE;
-            // if(running->tid == mythread_gettid())
-            mythread_timeout(running->tid);
-          }
-
-          running = scheduler();
-          running->state = RUNNING;
-          activator(running);
-
-          // printf("\n Se sustituye por ID: %d\n", running->tid);
-
-        }
+      if(running->remaining_ticks == 0){
+        //aqui se terminaria el while del function_thread y llama a mythread_exit
       }
+
+      else{
+        if(running->ticks <= 0){
+
+            running->state = INIT;
+            if (QUANTUM_TICKS < running->remaining_ticks) { //si la rodaja es menor que el tiempo que le queda de ejecucion se asigna la rodaja entera
+              running->ticks =  QUANTUM_TICKS;
+            }
+            else{
+              running->ticks = running->remaining_ticks;  //sino se le asigna lo que le quede de ejecucion
+            }
+
+            if(running->remaining_ticks > 0){
+              disable_interrupt();
+              enqueue(ready, running);  //se encola el proceso anterior
+              enable_interrupt();
+            }
+
+            old_running = running;  //se actualiza el proceso anterior
+
+            if(running->remaining_ticks < 0){
+
+              mythread_timeout(running->tid);
+            }
+
+            running = scheduler();  //se asigna el nuevo proceso a ejecutar
+            running->state = RUNNING; //se cambia el estado de runnin
+            activator(running); //se cambia el contexto
+
+          }
+        }
     }
-  // }
-// printf("\nEjecutando interrupt hw");
 }
 
 /* Activator */
 void activator(TCB* next)
 {
-  // printf("\nOld_running remaining_ticks: %d\n", old_running->remaining_ticks);
-  if(old_running->tid == next->tid){
+  if(old_running->tid == next->tid){  //si solo queda un hilo, no hay cambio de contexto
     return;
   }
-  if (old_running->remaining_ticks==0){
-      current = next->tid;
-      printf("\n*** THREAD %d TERMINATED : SETCONTEXT OF %d\n", old_running->tid, next->tid);
+  if (old_running->remaining_ticks==0){ //si se ha acabado el hilo, se procede a un setcontext
+      current = next->tid;  //se actualiza current thread
+      printf("*** THREAD %d TERMINATED : SETCONTEXT OF %d\n\n", old_running->tid, next->tid);
       setcontext (&(next->run_env));
       printf("mythread_free: After setcontext, should never get here!!...\n");
-    }
-  else{
-   //   if (old_running->state == FREE){
-   //   setcontext (&(next->run_env));
-   // }
-   // else{
-    current = next->tid;
-    printf("\n*** SWAPCONTEXT FROM %d TO %d\n", old_running->tid, next->tid);
-     swapcontext(&(old_running->run_env), &(next->run_env));
-   // }
   }
-  //
-//
-  // printf("mythread_free: After setcontext, should never get here!!...\n");
+  else{ //se cambia el contexto
+    current = next->tid; //se actualiza current thread
+    printf("*** SWAPCONTEXT FROM %d TO %d\n", old_running->tid, next->tid);
+    swapcontext(&(old_running->run_env), &(next->run_env));
+  }
+
 }
