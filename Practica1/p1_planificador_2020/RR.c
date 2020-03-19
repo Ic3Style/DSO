@@ -155,7 +155,7 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
 
   // struct tcb *thread_copy = &t_state[i]; //CUIDADO
 
-  printf("\nCreado hilo con ID: %d, tiempo: %d segundos, prioridad: %d\n", i, seconds, priority);
+  // printf("\nCreado hilo con ID: %d, tiempo: %d segundos, prioridad: %d\n", i, seconds, priority);
 
   // printf("Check del hilo: ID %d", thread_copy->tid);
 
@@ -165,7 +165,7 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
   enable_interrupt();
   //enable_disk_interrupt();
 
-  printf("Encolado el hilo con ID: %d \t", i);
+  // printf("Encolado el hilo con ID: %d \t", i);
 
   return i;
 }
@@ -193,8 +193,8 @@ void mythread_exit() {
   t_state[tid].state = FREE;
   free(t_state[tid].run_env.uc_stack.ss_sp);
 
-  int tiempo = t_state[tid].execution_total_ticks;
-  printf("tiempo ejecución %d Hilo %d\n", tiempo, tid);
+  // int tiempo = t_state[tid].execution_total_ticks;
+  // printf("tiempo ejecución %d Hilo %d\n", tiempo, tid);
 
   old_running = running;
 
@@ -271,7 +271,8 @@ TCB* scheduler()
 
   } //Else: la cola está vacía.
 
-  printf("mythread_free: No thread in the system\nExiting...\n");
+  // printf("mythread_free: No thread in the system\nExiting...\n");
+  printf("\n*** FINISH\n");
   exit(1);
 }
 
@@ -324,7 +325,7 @@ void timer_interrupt(int sig)
           // printf("Old_running es ID: %d\n", old_running->tid);
 
           if(running->remaining_ticks < 0){
-            printf("Hilo ID: %d, procede a exit\n", mythread_gettid());
+            // printf("Hilo ID: %d, procede a exit\n", mythread_gettid());
             // running->state = FREE;
             // if(running->tid == mythread_gettid())
             mythread_timeout(running->tid);
