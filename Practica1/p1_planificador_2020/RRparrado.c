@@ -188,7 +188,7 @@ void disk_interrupt(int sig)
 void mythread_exit() {
   int tid = mythread_gettid();
 
-  printf("\n*** THREAD %d FINISHED\n", tid);
+  printf("*** THREAD %d FINISHED\n", tid);
 
   t_state[tid].state = FREE;
   free(t_state[tid].run_env.uc_stack.ss_sp);
@@ -315,24 +315,24 @@ void timer_interrupt(int sig)
 void activator(TCB* next)
 {
 
-  /*if (next->tid == current){ // Si no hay nadie en la cola, sigue él
+  if(old_running->tid == next->tid){
     return;
-  }*/
-
+  }
   if (old_running->remaining_ticks==0){
+      current = next->tid;
+      printf("*** THREAD %d TERMINATED : SETCONTEXT OF %d\n", old_running->tid, next->tid);
       setcontext (&(next->run_env));
       printf("mythread_free: After setcontext, should never get here!!...\n");
-    }else{
+    }
+  else{
 
-      if (old_running->state == FREE){
-        setcontext (&(next->run_env));
-      }
-      else{
-        printf("*** SWAPCONTEXT FROM %d TO %d\n", old_running->tid, next->tid);
-        swapcontext(&(old_running->run_env), &(next->run_env));
-      }
+    current = next->tid;
+    printf("*** SWAPCONTEXT FROM %d TO %d\n", old_running->tid, next->tid);
+     swapcontext(&(old_running->run_env), &(next->run_env));
 
-}
+  }
+
+
   //
 //
   // printf("mythread_free: After setcontext, should never get here!!...\n");
