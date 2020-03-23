@@ -154,124 +154,20 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
   makecontext(&t_state[i].run_env, fun_addr,2,seconds);
 
   //disable_disk_interrupt();
-
+  if(priority == LOW_PRIORITY){
+    disable_interrupt();
+    printf("\nSe encola el proceso %d en LP", i);
+    enqueue(lp_queue, &t_state[i]);  //se encola en la lista de lp_queue
+    enable_interrupt();
+  }
+  else{
+    disable_interrupt();
+    printf("\nSe encola el proceso %d en HP", i);
+    sorted_enqueue(hp_queue, &t_state[i], t_state[i].execution_total_ticks);  //se encola en la lista de hp_queue de forma ordenada
+    enable_interrupt();
+  }
   //enable_disk_interrupt();
-
-  if (running != NULL && running->priority == LOW_PRIORITY && t_state[i]->priority== HIGH_PRIORITY){
-
-    running->state = INIT;
-    if (QUANTUM_TICKS < running->remaining_ticks) { //si la rodaja es menor que el tiempo que le queda de ejecucion se asigna la rodaja entera
-      running->ticks =  QUANTUM_TICKS;
-    }
-    else{
-      running->ticks = running->remaining_ticks;  //sino se le asigna lo que le quede de ejecucion
-    }
-
-    disable_interrupt();
-    enqueue(lp_queue, running);  //se encola en la lista de lp_queue
-    enable_interrupt();
-
-    old_running = running;
-    running = t_state[i];
-    running->state = RUNNING;
-    activator (running);
-  }
-
-  else if (running != NULL && running->priority = HIGH_PRIORITY && thread_copy[i]->priority == HIGH_PRIORITY && t_state[i]->execution_total_ticks < running->execution_total_ticks){
-
-    // si el nuevo que entra tiene menor tiempo de ejecucion habra que ejecutarlo antes q el que ay esta ejecutando
-
-    running->state = INIT;
-    enqueue(disable_interrupt();
-    enqueue(hp_queue, running);  //se encola en la lista de hp
-    enable_interrupt();
-
-
-  }
-
-  if (running != NULL){
-
-
-  }
-
-
-
-  }
-
-  if(running->state == RUNNING && running->priority == LOW_PRIORITY && queue_empty(hp_queue) == 0){ //Esta ejecutando la cola de baja y un proceso entra la cola de alta
-    running->ticks--; //se reduce su rodaja si es de baja prioridad
-    running->remaining_ticks--; //se reduce su ejecucion global
-
-    old_running = running;  //se actualiza el proceso anterior
-
-
-    if(running->remaining_ticks == 0){ //si se da el caso de que el proceso justo termine
-      //aqui se terminaria el while del function_thread y llama a mythread_exit
-    }
-    else if(running->remaining_ticks < 0){
-      mythread_timeout(running->tid);
-    }
-    else{
-      if (QUANTUM_TICKS < running->remaining_ticks) { //si la rodaja es menor que el tiempo que le queda de ejecucion se asigna la rodaja entera
-        running->ticks =  QUANTUM_TICKS;
-      }
-      else{
-        running->ticks = running->remaining_ticks;  //sino se le asigna lo que le quede de ejecucion
-      }
-      disable_interrupt();
-      enqueue(lp_queue, running);  //se encola el proceso anterior
-      enable_interrupt();
-    }
-    old_running->state = INIT;
-    running = scheduler();  //se asigna el nuevo proceso a ejecutar
-    running->state = RUNNING; //se cambia el estado de runnin
-    activator(running); //se cambia el contexto
-  }
-
-  if(running->state == RUNNING && running->priority == HIGH_PRIORITY && queue_empty(hp_queue) == 1){ //Esta ejecutando la cola de alta y un proceso entra la cola de alta
-    running->remaining_ticks--; //se reduce su ejecucion global
-
-    old_running = running;
-
-    if(running->remaining_ticks == 0){ //si se da el caso de que el proceso justo termine
-      //aqui se terminaria el while del function_thread y llama a mythread_exit
-      running = scheduler();  //se asigna el nuevo proceso a ejecutar
-      old_running->state = INIT;
-      running->state = RUNNING; //se cambia el estado de runnin
-      activator(running); //se cambia el contexto
-    }
-  }
-
-  if(running->state == RUNNING && running->priority == HIGH_PRIORITY && queue_empty(hp_queue) == 0){ //Esta ejecutando la cola de baja y no hay ningun proceso en la cola de alta
-    running->remaining_ticks--; //se reduce su ejecucion global
-
-    old_running = running;
-
-    if(running->remaining_ticks == 0){ //si se da el caso de que el proceso justo termine
-      //aqui se terminaria el while del function_thread y llama a mythread_exit
-      running = scheduler();  //se asigna el nuevo proceso a ejecutar
-      old_running->state = INIT;
-      running->state = RUNNING; //se cambia el estado de runnin
-      activator(running); //se cambia el contexto
-    }
-
-    //Ahora se comprueba si hay algun proceso con menos tiempo de ejecucion
-    disable_interrupt();
-    TCB* thread_copy = dequeue(hp_queue);
-    enable_interrupt();
-
-    if(thread_copy->execution_total_ticks < running->remaining_ticks){
-      running = thread_copy;
-      old_running->state = INIT;
-      running->state = RUNNING; //se cambia el estado de runnin
-      activator(running); //se cambia el contexto
-    }
-
-  }
-
-
-
-
+  queue_print(hp_queue);
   return i;
 }
 /****** End my_thread_create() ******/
@@ -363,6 +259,7 @@ TCB* scheduler(){
     return thread_copy;
 
   } //Else: la cola de baja prioridad esta vacia. Se desencola el primer proceso de baja prioridad
+
   if(!queue_empty(lp_queue)){
   disable_interrupt();
   TCB *thread_copy = dequeue(lp_queue);  //se desencola el primer proceso de baja prioridad
@@ -370,8 +267,6 @@ TCB* scheduler(){
 
   return thread_copy; //Devuelve el proceso
   }
-
-
 
   printf("*** FINISH\n"); ///no quedan hilos por ejecutar
   exit(1);
@@ -383,9 +278,12 @@ void timer_interrupt(int sig)
 {
 
     if(running->state == RUNNING && running->priority == LOW_PRIORITY && queue_empty(hp_queue)){ //Esta ejecutando la cola de baja y no hay ningun proceso en la cola de alta
+        // printf("\n CASO RUNNING LP Y HP_QUEUE VACIA");
       running->ticks--; //se reduce su rodaja si es de baja prioridad
       running->remaining_ticks--; //se reduce su ejecucion global
-
+      // if(running->remaining_ticks%10==0){
+      //   printf("\nQUEDAN %d TICKS", running->remaining_ticks);
+      // }
       if(running->remaining_ticks == 0){
         //aqui se terminaria el while del function_thread y llama a mythread_exit
       }
@@ -414,13 +312,17 @@ void timer_interrupt(int sig)
               mythread_timeout(running->tid);
             }
 
-
+            old_running->state = INIT;
+            running = scheduler();  //se asigna el nuevo proceso a ejecutar
+            running->state = RUNNING; //se cambia el estado de runnin
+            activator(running); //se cambia el contexto
 
           }
         }
     }
 
-    if(running->state == RUNNING && running->priority == LOW_PRIORITY && queue_empty(hp_queue) == 0){ //Esta ejecutando la cola de baja y un proceso entra la cola de alta
+    else if(running->state == RUNNING && running->priority == LOW_PRIORITY && queue_empty(hp_queue) == 0){ //Esta ejecutando la cola de baja y un proceso entra la cola de alta
+        // printf("\n CASO RUNNING LP Y HP_QUEUE NO VACIA");
       running->ticks--; //se reduce su rodaja si es de baja prioridad
       running->remaining_ticks--; //se reduce su ejecucion global
 
@@ -450,13 +352,15 @@ void timer_interrupt(int sig)
       activator(running); //se cambia el contexto
     }
 
-    if(running->state == RUNNING && running->priority == HIGH_PRIORITY && queue_empty(hp_queue) == 1){ //Esta ejecutando la cola de alta y un proceso entra la cola de alta
+    else if(running->state == RUNNING && running->priority == HIGH_PRIORITY && queue_empty(hp_queue) == 1){ //Esta ejecutando la cola de alta y un proceso entra la cola de alta
+      // printf("\n CASO RUNNING HP Y HP_QUEUE VACIA");
       running->remaining_ticks--; //se reduce su ejecucion global
 
       old_running = running;
 
       if(running->remaining_ticks == 0){ //si se da el caso de que el proceso justo termine
         //aqui se terminaria el while del function_thread y llama a mythread_exit
+        mythread_exit();
         running = scheduler();  //se asigna el nuevo proceso a ejecutar
         old_running->state = INIT;
         running->state = RUNNING; //se cambia el estado de runnin
@@ -464,13 +368,17 @@ void timer_interrupt(int sig)
       }
     }
 
-    if(running->state == RUNNING && running->priority == HIGH_PRIORITY && queue_empty(hp_queue) == 0){ //Esta ejecutando la cola de baja y no hay ningun proceso en la cola de alta
+    else if(running->state == RUNNING && running->priority == HIGH_PRIORITY && queue_empty(hp_queue) == 0){ //Esta ejecutando la cola de alta y hay proceso en la cola de alta
       running->remaining_ticks--; //se reduce su ejecucion global
+      // printf("\n CASO RUNNING HP Y HP_QUEUE NO VACIA" );
+      // printf("\n");
+      // queue_print(hp_queue);
 
       old_running = running;
 
       if(running->remaining_ticks == 0){ //si se da el caso de que el proceso justo termine
         //aqui se terminaria el while del function_thread y llama a mythread_exit
+        mythread_exit();
         running = scheduler();  //se asigna el nuevo proceso a ejecutar
         old_running->state = INIT;
         running->state = RUNNING; //se cambia el estado de runnin
@@ -482,11 +390,17 @@ void timer_interrupt(int sig)
       TCB* thread_copy = dequeue(hp_queue);
       enable_interrupt();
 
-      if(thread_copy->execution_total_ticks < running->remaining_ticks){
+      if(thread_copy->execution_total_ticks < running->execution_total_ticks){
+
+        sorted_enqueue(hp_queue, running, running->execution_total_ticks);  //se encola en la lista de hp_queue de forma ordenada
+
         running = thread_copy;
         old_running->state = INIT;
         running->state = RUNNING; //se cambia el estado de runnin
         activator(running); //se cambia el contexto
+      }
+      else{
+        sorted_enqueue(hp_queue, thread_copy, thread_copy->execution_total_ticks);
       }
 
     }
