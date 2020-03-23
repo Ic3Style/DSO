@@ -156,18 +156,18 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
   //disable_disk_interrupt();
   if(priority == LOW_PRIORITY){
     disable_interrupt();
-    printf("\nSe encola el proceso %d en LP", i);
+    // printf("\nSe encola el proceso %d en LP", i);
     enqueue(lp_queue, &t_state[i]);  //se encola en la lista de lp_queue
     enable_interrupt();
   }
   else{
     disable_interrupt();
-    printf("\nSe encola el proceso %d en HP", i);
+    // printf("\nSe encola el proceso %d en HP", i);
     sorted_enqueue(hp_queue, &t_state[i], t_state[i].execution_total_ticks);  //se encola en la lista de hp_queue de forma ordenada
     enable_interrupt();
   }
   //enable_disk_interrupt();
-  queue_print(hp_queue);
+  // queue_print(hp_queue);
   return i;
 }
 /****** End my_thread_create() ******/

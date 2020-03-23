@@ -158,7 +158,9 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
   //enable_disk_interrupt();
 
   if (running != NULL && running->priority == LOW_PRIORITY && t_state[i].priority == HIGH_PRIORITY){
-
+    printf("\nCASO 1");
+    // queue_print(hp_queue);
+    // queue_print(lp_queue);
     running->state = INIT;
     if (QUANTUM_TICKS < running->remaining_ticks) { //si la rodaja es menor que el tiempo que le queda de ejecucion se asigna la rodaja entera
       running->ticks =  QUANTUM_TICKS;
@@ -178,7 +180,7 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
   }
 
   else if (running != NULL && running->priority == HIGH_PRIORITY && t_state[i].priority == HIGH_PRIORITY && t_state[i].execution_total_ticks < running->execution_total_ticks){
-
+        printf("\nCASO 2");
     // si el nuevo que entra tiene menor tiempo de ejecucion habra que ejecutarlo antes q el que ay esta ejecutando
 
     running->state = INIT;
@@ -194,13 +196,16 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
 
   }
 
-  else if (running != NULL){
+  else if (running != NULL ){
+        printf("\nCASO 3");
     if(t_state->priority == HIGH_PRIORITY){ // es de alta prioridad pero el tiempo de ejecucion es mayor que el que esta ejecutando
+          printf("\nCASO 3a");
       disable_interrupt();
       sorted_enqueue(hp_queue, &t_state[i], t_state[i].execution_total_ticks);  //se encola en la lista de hp
       enable_interrupt();
     }
     else{ // Si es de baja prioridad se encola
+        printf("\nCASO 3b");
       disable_interrupt();
       enqueue(lp_queue, &t_state[i]);  //se encola en la lista de hp
       enable_interrupt();
@@ -208,6 +213,7 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
   }
 
   else{ // Si ej = null poner a ejecutar el que le llegue
+      printf("\nCASO 4");
     running = &t_state[i];
     running->state = RUNNING;
   }
@@ -319,13 +325,14 @@ TCB* scheduler(){
 /* Timer interrupt */
 void timer_interrupt(int sig)
 {
+    running->remaining_ticks--; //se reduce su ejecucion global
+    // printf("\nRemaining ticks: %d", running->remaining_ticks);
     if(running == NULL || running->priority == HIGH_PRIORITY){// si es de alta
-      return;
+
     }// de  baja prioridad
 
     else if(running->state == RUNNING){
 
-      running->remaining_ticks--; //se reduce su ejecucion global
       running->ticks--; //se reduce su rodaja si es de baja prioridad
 
       if(running->remaining_ticks == 0){
