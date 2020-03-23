@@ -25,7 +25,7 @@
 
 #define LOW_PRIORITY 0
 #define HIGH_PRIORITY 1
-#define SYSTEM 2
+#define SYSTEM 2 // Que es sistem
 /* Structure containing thread state  */
 typedef struct tcb{
   int state; /* the state of the current block: FREE or INIT */
