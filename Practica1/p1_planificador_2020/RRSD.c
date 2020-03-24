@@ -22,6 +22,7 @@ static TCB t_state[N];
 
 struct queue * lp_queue; // Cola de listos para RR.
 struct queue * hp_queue; // Cola de listos de SJF
+struct queue * bl_queue; // Cola de procesos bloqueados
 
 /* Current running thread */
 static TCB* running;
@@ -60,6 +61,7 @@ void init_mythreadlib()
 
   lp_queue = queue_new();  //creamos la cola de listos para low priority RR
   hp_queue = queue_new(); //creamos la cola de listos para high priority
+  bl_queue = queue_new(); //creamos la cola de hilos bloqueados por peticion de disco
 
   /* Create context for the idle thread */
   if(getcontext(&idle.run_env) == -1)
@@ -73,6 +75,7 @@ void init_mythreadlib()
   idle.function = idle_function;
   idle.run_env.uc_stack.ss_sp = (void *)(malloc(STACKSIZE));
   idle.tid = -1;
+  idle.remaining_ticks = 1; //para que no haya problemas con el activator
 
   if(idle.run_env.uc_stack.ss_sp == NULL)
   {
@@ -88,6 +91,8 @@ void init_mythreadlib()
   t_state[0].state = RUNNING; //MODIFICADO
   t_state[0].priority = LOW_PRIORITY; //PUEDE QUE HAYA QUE MODIFICARLO
   t_state[0].ticks = QUANTUM_TICKS;
+  
+  t_state[0].execution_total_ticks = 300;
 
 
   if(getcontext(&t_state[0].run_env) == -1)
@@ -105,7 +110,7 @@ void init_mythreadlib()
   running = &t_state[0];
 
   /* Initialize disk and clock interrupts */
-  // init_disk_interrupt();    //el disco no es necesario iniciarlo en este apartado
+  init_disk_interrupt();    //el disco no es necesario iniciarlo en este apartado
   init_interrupt();
 }
 
@@ -155,15 +160,21 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
 
   //disable_disk_interrupt();
   if(priority == LOW_PRIORITY){
+    printf("\nCREADO HILO EN LP");
     disable_interrupt();
     // printf("\nSe encola el proceso %d en LP", i);
+    disable_disk_interrupt();
     enqueue(lp_queue, &t_state[i]);  //se encola en la lista de lp_queue
+    enable_disk_interrupt();
     enable_interrupt();
   }
-  else{
+  else if(priority == HIGH_PRIORITY){
+    printf("\nCREADO HILO EN HP");
     disable_interrupt();
     // printf("\nSe encola el proceso %d en HP", i);
+    disable_disk_interrupt();
     sorted_enqueue(hp_queue, &t_state[i], t_state[i].execution_total_ticks);  //se encola en la lista de hp_queue de forma ordenada
+    enable_disk_interrupt();
     enable_interrupt();
   }
   //enable_disk_interrupt();
@@ -176,13 +187,67 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
 /* Read disk syscall */
 int read_disk()
 {
+// printf("\nENTRA A read_disk EL HILO ID: %d", mythread_gettid());
+if (data_in_page_cache() != 0){ //ve si el bloque esta en cache o no
+
+//Pasar proceso a lista de bloqueados y llamada a scheduler y activator.
+
+    old_running = running; //se actualiza el proceso anterior
+    old_running -> state = WAITING;
+    // old_running->state = INIT;
+
+    disable_interrupt();
+    disable_disk_interrupt();
+    printf("\nSe mete el proceso ID: %d a BLOCKED", running->tid);
+    enqueue(bl_queue, running); //Se mete el hilo en la cola de bloqueados
+    enable_disk_interrupt();
+    enable_interrupt();
+
+    running = scheduler(); //se asigna el nuevo proceso a ejecutar
+    running->state = RUNNING; //se cambia el estado del running
+    activator(running); //se cambia el contexto
+
+  }
    return 1;
 }
 
 /* Disk interrupt  */
 void disk_interrupt(int sig)
 {
+  //Procesos bloqueados a listos y los mete en su cola correspondiente
+  // printf("\nENTRANDO A DISK INTERRUPT");
+  if(!queue_empty(bl_queue)){
 
+    disable_interrupt();
+    disable_disk_interrupt();
+    TCB * aux = dequeue(bl_queue);
+    enable_disk_interrupt();
+    enable_interrupt();
+
+
+    aux->state= INIT;
+    if(aux->priority == HIGH_PRIORITY){ //Alta prioridad ira a la cola de Alta
+
+      disable_interrupt();
+      disable_disk_interrupt();
+      sorted_enqueue(hp_queue, aux, aux->execution_total_ticks);
+      printf("\nCOLA ALTA PRIORIDAD DISK interrupt");
+      queue_print(hp_queue);
+      enable_disk_interrupt();
+      enable_interrupt();
+
+    }else{ //Baja prioridad
+
+      disable_interrupt();
+      disable_disk_interrupt();
+      enqueue(lp_queue, aux);
+      printf("\nCOLA ALTA PRIORIDAD DISK interrupt");
+      queue_print(lp_queue);
+      enable_disk_interrupt();
+      enable_interrupt();
+
+    }
+  }
 }
 
 
@@ -247,8 +312,6 @@ TCB* scheduler(){
     }
   }
 
-
-
   if(!queue_empty(hp_queue)){ //Cola de alta prioridad no vacia
 
     //disable_disk_interrupt();
@@ -260,12 +323,18 @@ TCB* scheduler(){
 
   } //Else: la cola de baja prioridad esta vacia. Se desencola el primer proceso de baja prioridad
 
-  if(!queue_empty(lp_queue)){
+  else if(!queue_empty(lp_queue)){
   disable_interrupt();
+  disable_disk_interrupt();
   TCB *thread_copy = dequeue(lp_queue);  //se desencola el primer proceso de baja prioridad
+  enable_disk_interrupt();
   enable_interrupt();
 
   return thread_copy; //Devuelve el proceso
+  }
+
+  else if(!queue_empty(bl_queue)){
+    return &idle;
   }
 
   printf("*** FINISH\n"); ///no quedan hilos por ejecutar
@@ -276,6 +345,12 @@ TCB* scheduler(){
 /* Timer interrupt */
 void timer_interrupt(int sig)
 {
+    // printf("\nCOLA HP \t");
+    // queue_print(hp_queue);
+    // printf("\nCOLA LP \t");
+    // queue_print(lp_queue);
+    // printf("\nCOLA BL \t");
+    // queue_print(bl_queue);
 
     if(running->state == RUNNING && running->priority == LOW_PRIORITY && queue_empty(hp_queue)){ //Esta ejecutando la cola de baja y no hay ningun proceso en la cola de alta
         // printf("\n CASO RUNNING LP Y HP_QUEUE VACIA");
@@ -392,7 +467,9 @@ void timer_interrupt(int sig)
 
       if(thread_copy->execution_total_ticks < running->execution_total_ticks){
 
+        disable_interrupt();
         sorted_enqueue(hp_queue, running, running->execution_total_ticks);  //se encola en la lista de hp_queue de forma ordenada
+        enable_interrupt();
 
         running = thread_copy;
         old_running->state = INIT;
@@ -400,9 +477,16 @@ void timer_interrupt(int sig)
         activator(running); //se cambia el contexto
       }
       else{
+        disable_interrupt();
         sorted_enqueue(hp_queue, thread_copy, thread_copy->execution_total_ticks);
+        enable_interrupt();
       }
 
+    }
+
+    else if(running->priority == SYSTEM){
+      //Si es idle, no hace nada
+      printf("\nIDLE");
     }
 
 }

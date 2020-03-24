@@ -15,7 +15,6 @@ TCB* scheduler();
 void activator();
 void timer_interrupt(int sig);
 void disk_interrupt(int sig);
-int global_tick = 0; //TICKS GLOBALES DEL SISTEMA
 
 /* Array of state thread control blocks: the process allows a maximum of N threads */
 static TCB t_state[N];
@@ -42,7 +41,6 @@ static void idle_function()
 
 void function_thread(int sec)
 {
-    //time_t end = time(NULL) + sec;
     while(running->remaining_ticks)
     {
       //el hilo no hace nada mientras se ejecuta

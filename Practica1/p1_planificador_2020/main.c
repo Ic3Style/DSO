@@ -25,12 +25,14 @@ int main(int argc, char *argv[])
   }
 
   read_disk();
-  read_disk();
 
   if((j = mythread_create(function_thread,LOW_PRIORITY, 2)) == -1){
     printf("thread failed to initialize\n");
     exit(-1);
   }
+
+  read_disk();
+
   if((k = mythread_create(function_thread,HIGH_PRIORITY, 4)) == -1){
     printf("thread failed to initialize\n");
     exit(-1);
