@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
 {
   int j,k,l,m,a,b,f;
 
+  // read_disk();
 
   mythread_setpriority(LOW_PRIORITY);
   if((f = mythread_create(function_thread,HIGH_PRIORITY,5)) == -1){
@@ -24,6 +25,7 @@ int main(int argc, char *argv[])
       exit(-1);
   }
 
+  read_disk();
   read_disk();
 
   if((j = mythread_create(function_thread,LOW_PRIORITY, 2)) == -1){
