@@ -85,7 +85,6 @@ void init_mythreadlib()
   t_state[0].priority = LOW_PRIORITY;
   t_state[0].ticks = QUANTUM_TICKS;
 
-  t_state[0].remaining_ticks = 500;
 
   if(getcontext(&t_state[0].run_env) == -1)
   {

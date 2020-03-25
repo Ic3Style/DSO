@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
   read_disk();
 
 
-  for (a=0; a<10; ++a) {
+  for (a=0; a<10000000; ++a) {
     for (b=0; b<30000000; ++b);
   }
 

@@ -85,7 +85,6 @@ void init_mythreadlib()
   t_state[0].priority = LOW_PRIORITY;
   t_state[0].ticks = QUANTUM_TICKS;
 
-
   if(getcontext(&t_state[0].run_env) == -1)
   {
     perror("*** ERROR: getcontext in init_thread_lib");
@@ -190,7 +189,7 @@ void mythread_exit() {
 
 void mythread_timeout(int tid) {
 
-    printf("*** THREAD %d EJECTED\n\n", tid);
+    printf("\n*** THREAD %d EJECTED\n", tid);
     t_state[tid].state = FREE;
     free(t_state[tid].run_env.uc_stack.ss_sp);
 
@@ -205,7 +204,7 @@ void mythread_setpriority(int priority)
 {
   int tid = mythread_gettid();
   t_state[tid].priority = priority;
-  if(priority ==  HIGH_PRIORITY){
+  if(priority ==  HIGH_PRIORITY || priority == LOW_PRIORITY){
     t_state[tid].remaining_ticks = 195;
   }
 }
@@ -227,13 +226,6 @@ int mythread_gettid(){
 
 TCB* scheduler(){
 
-  int i;
-  for(i=0; i<N; i++){
-    if (t_state[i].state == INIT){
-      current = i;
-    }
-  }
-
   if(!queue_empty(ready)){
 
     //disable_disk_interrupt();
@@ -241,6 +233,8 @@ TCB* scheduler(){
     TCB *thread_copy = dequeue(ready);  //se desencola el primer proceso de ready
     enable_interrupt();
     //enable_disk_interrupt();
+
+    current = thread_copy->tid;
 
     return thread_copy;
 
@@ -303,7 +297,7 @@ void activator(TCB* next)
   if(old_running->tid == next->tid){  //si solo queda un hilo, no hay cambio de contexto
     return;
   }
-  if (old_running->remaining_ticks==0){ //si se ha acabado el hilo, se procede a un setcontext
+  if (old_running->remaining_ticks<=0){ //si se ha acabado el hilo, se procede a un setcontext
       current = next->tid;  //se actualiza current thread
       printf("*** THREAD %d TERMINATED : SETCONTEXT OF %d\n\n", old_running->tid, next->tid);
       setcontext (&(next->run_env));
