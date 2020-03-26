@@ -9,7 +9,7 @@ LDFLAGS	= libinterrupt.a
 HEADERS = mythread.h queue.h my_io.h
 
 
-OBJS	= RRSD_new.o queue.o my_io.o 
+OBJS	= RRSD.o queue.o my_io.o 
 
 LIBS	= -lm -lrt
 
