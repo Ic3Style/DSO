@@ -49,6 +49,21 @@ void function_thread(int sec)
      mythread_exit(); //al terminar su tiempo total de ejecucion hace exit
 }
 
+void function_thread_aux(int sec) //funcion auxiliar creada para RRSD
+{
+  while(running->remaining_ticks > (running->execution_total_ticks/2))
+  {
+    //el hilo no hace nada mientras se ejecuta
+  }
+  read_disk(); //llama a disco en la mitad de su ejecucion
+  while(running->remaining_ticks)
+  {
+    //el hilo no hace nada mientras se ejecuta
+  }
+
+  mythread_exit(); //al terminar su tiempo total de ejecucion hace exit
+}
+
 
 /* Initialize the thread library */
 void init_mythreadlib()

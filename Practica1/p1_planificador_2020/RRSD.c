@@ -52,7 +52,7 @@ void function_thread(int sec)
      mythread_exit(); //al terminar su tiempo total de ejecucion hace exit
 }
 
-void function_thread_aux(int sec)
+void function_thread_aux(int sec) //funcion auxiliar creada para RRSD
 {
   while(running->remaining_ticks > (running->execution_total_ticks/2))
   {
