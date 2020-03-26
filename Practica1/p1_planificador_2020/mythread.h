@@ -47,8 +47,8 @@ int read_disk(); /* */
 int seconds_to_ticks(int seconds);
 
 static inline int data_in_page_cache() {
-  return 1;
-  // return rand() & 0x01;
+  // return 1;
+  return rand() & 0x01;
 }
 
 #endif

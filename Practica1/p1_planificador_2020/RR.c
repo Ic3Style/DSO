@@ -238,7 +238,7 @@ TCB* scheduler(){
 
     return thread_copy;
 
-  } //Else: la cola está vacía.
+  } //Else: la cola esta vacia.
 
   printf("*** FINISH\n"); ///no quedan hilos por ejecutar
   exit(1);

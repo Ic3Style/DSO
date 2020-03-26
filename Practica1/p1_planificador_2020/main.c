@@ -10,6 +10,7 @@
 
 //Each thread executes this function
 extern void function_thread(int sec);
+extern void function_thread_aux(int sec);
 
 
 
@@ -26,16 +27,16 @@ int main(int argc, char *argv[])
   }
 
   read_disk();
-  read_disk();
+  // read_disk();
 
-  if((j = mythread_create(function_thread,LOW_PRIORITY, 2)) == -1){
+  if((j = mythread_create(function_thread_aux,LOW_PRIORITY, 2)) == -1){
     printf("thread failed to initialize\n");
     exit(-1);
   }
 
   read_disk();
 
-  if((k = mythread_create(function_thread,HIGH_PRIORITY, 4)) == -1){
+  if((k = mythread_create(function_thread_aux,HIGH_PRIORITY, 4)) == -1){
     printf("thread failed to initialize\n");
     exit(-1);
   }
