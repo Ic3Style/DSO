@@ -183,7 +183,7 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
     disable_interrupt();
     enqueue(lp_queue, running);  //se encola en la lista de lp_queue
     enable_interrupt();
-    // printf("\nCreado HP ID: %d", i);
+    printf("\nCreado HP ID: %d", i);
 
 
     old_running = running;  //se actualiza el proceso anterior
@@ -205,7 +205,7 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
     sorted_enqueue(hp_queue, running, running->execution_total_ticks);  //se encola en la lista de hp
     enable_interrupt();
 
-    // printf("\nCreado HP ID: %d", i);
+    printf("\nCreado HP ID: %d", i);
 
     running = &t_state[i]; //se actualiza el proceso en marcha
     running->state = RUNNING;
@@ -221,14 +221,14 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
       sorted_enqueue(hp_queue, &t_state[i], t_state[i].execution_total_ticks);  //se encola en la lista de hp
       enable_interrupt();
 
-      // printf("\nCreado HP ID: %d", i);
+      printf("\nCreado HP ID: %d", i);
     }
     else{ // Si es de baja prioridad se encola
       disable_interrupt();
       enqueue(lp_queue, &t_state[i]);  //se encola en la lista de lp
       enable_interrupt();
 
-      // printf("\nCreado LP ID: %d", i);
+      printf("\nCreado LP ID: %d", i);
     }
   }
 
@@ -336,12 +336,12 @@ TCB* scheduler(){
 /* Timer interrupt */
 void timer_interrupt(int sig)
 {
-
     // printf("\nRemaining ticks: %d", running->remaining_ticks);
     if(running->state == RUNNING && running->priority == HIGH_PRIORITY){// si es de alta
       running->remaining_ticks--; //se reduce su ejecucion global
 
       if(running->remaining_ticks < 0){ //si se pasa de 0 se eyecta el thread
+        old_running = running; //se actualiza el proceso anterior
         mythread_timeout(running->tid);
       }
 

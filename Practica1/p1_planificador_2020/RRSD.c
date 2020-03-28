@@ -435,6 +435,7 @@ void timer_interrupt(int sig)
       running->remaining_ticks--; //se reduce su ejecucion global
 
       if(running->remaining_ticks < 0){ //si se pasa de 0 se eyecta el thread
+        old_running = running; //se actualiza el proceso anterior
         mythread_timeout(running->tid);
       }
 

@@ -179,7 +179,7 @@ int read_disk()
 {
    return 1;
 }
-
+ 
 /* Disk interrupt  */
 void disk_interrupt(int sig)
 {
