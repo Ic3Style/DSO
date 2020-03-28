@@ -250,7 +250,7 @@ int read_disk()
 
       disable_interrupt();
       disable_disk_interrupt();
-      printf("\n*** THREAD %d READ FROM DISK\n", running->tid);
+      printf("*** THREAD %d READ FROM DISK\n", running->tid);
       enqueue(bl_queue, running); //Se mete el hilo en la cola de bloqueados
       enable_disk_interrupt();
       enable_interrupt();
@@ -290,7 +290,7 @@ void disk_interrupt(int sig)
 
         disable_interrupt();
         enqueue(lp_queue, running);  //se encola en la lista de lp_queue
-        printf("\n*** THREAD %d READY", aux->tid);
+        printf("*** THREAD %d READY\n", aux->tid);
         enable_interrupt();
 
         old_running = running;  //se actualiza el proceso anterior
@@ -306,7 +306,7 @@ void disk_interrupt(int sig)
 
         disable_interrupt();
         sorted_enqueue(hp_queue, running, running->remaining_ticks);  //se encola en la lista de hp
-        printf("\n*** THREAD %d READY", aux->tid);
+        printf("*** THREAD %d READY\n", aux->tid);
         enable_interrupt();
 
         running = aux; //se actualiza el proceso en marcha
@@ -318,7 +318,7 @@ void disk_interrupt(int sig)
         disable_interrupt();
         disable_disk_interrupt();
         sorted_enqueue(hp_queue, aux, aux->remaining_ticks);
-        printf("\n*** THREAD %d READY", aux->tid);
+        printf("*** THREAD %d READY\n", aux->tid);
         // queue_print(hp_queue);
         enable_disk_interrupt();
         enable_interrupt();
@@ -328,7 +328,7 @@ void disk_interrupt(int sig)
       disable_interrupt();
       disable_disk_interrupt();
       enqueue(lp_queue, aux);
-      printf("\n*** THREAD %d READY\n", aux->tid);
+      printf("*** THREAD %d READY\n", aux->tid);
       // queue_print(lp_queue);
       enable_disk_interrupt();
       enable_interrupt();

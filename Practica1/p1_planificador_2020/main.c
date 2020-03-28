@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
 
   // read_disk();
 
-  mythread_setpriority(LOW_PRIORITY);
+  mythread_setpriority(HIGH_PRIORITY);
   if((f = mythread_create(function_thread,HIGH_PRIORITY,5)) == -1){
       printf("thread failed to initialize\n");
       exit(-1);
