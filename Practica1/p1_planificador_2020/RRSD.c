@@ -279,7 +279,8 @@ void disk_interrupt(int sig)
 
     aux->state= INIT;
     if(aux->priority == HIGH_PRIORITY){ //si el proceso que vuelve es hp
-      if(running->priority == LOW_PRIORITY){//si el actual es lp se sustituye
+      if(running->priority == LOW_PRIORITY){//***** CASO 2 RUTA A
+        //se encola directamente el proceso en running
         running->state = INIT;
         if (QUANTUM_TICKS < running->remaining_ticks) { //si la rodaja es menor que el tiempo que le queda de ejecucion se asigna la rodaja entera
           running->ticks =  QUANTUM_TICKS;
@@ -300,7 +301,8 @@ void disk_interrupt(int sig)
         running->state = RUNNING;
         activator (running);
       }
-      else if(running->priority == HIGH_PRIORITY && aux->remaining_ticks < running->remaining_ticks){//si el proceso que vuelve es mas corto que el actual
+      else if(running->priority == HIGH_PRIORITY && aux->remaining_ticks < running->remaining_ticks){//***** CASO 2 RUTA B
+        //si el proceso que vuelve es mas corto que el actual
         running->state = INIT;
         old_running = running; //se actualiza el proceso anterior
 
@@ -314,7 +316,8 @@ void disk_interrupt(int sig)
         current = running->tid; //se actualiza el id del current
         activator(running);
       }
-      else{//si el proceso que vuelve es mas largo que el actual
+      else{//***** CASO 3 RUTA B
+        //si el proceso que vuelve es mas largo que el actual
         disable_interrupt();
         disable_disk_interrupt();
         sorted_enqueue(hp_queue, aux, aux->remaining_ticks);
@@ -323,8 +326,8 @@ void disk_interrupt(int sig)
         enable_disk_interrupt();
         enable_interrupt();
       }
-    }else{ //Si el que viene es de baja prioridad se encola directamente
-
+    }else{ //***** CASO 3 RUTA A
+      //Si el que viene es de baja prioridad se encola directamente
       disable_interrupt();
       disable_disk_interrupt();
       enqueue(lp_queue, aux);
@@ -415,7 +418,7 @@ TCB* scheduler(){
   return thread_copy; //Devuelve el proceso
   }
 
-  else if(!queue_empty(bl_queue)){
+  else if(!queue_empty(bl_queue)){ //***** CASO 1
     running->state = IDLE;
     return &idle;
   }
@@ -481,7 +484,7 @@ void timer_interrupt(int sig)
 
     }
   }
-  else{
+  else{ //se esta ejecutando el IDLE
     if(!queue_empty(hp_queue) || !queue_empty(lp_queue)){
       old_running = running;  //se actualiza el proceso anterior
       running = scheduler();  //se asigna el nuevo proceso a ejecutar
@@ -489,7 +492,7 @@ void timer_interrupt(int sig)
       activator(running); //se cambia el contexto
     }
   }
-  // printf("\nIDLE");
+
 }
 
 /* Activator */
