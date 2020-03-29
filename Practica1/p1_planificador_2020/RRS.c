@@ -170,7 +170,7 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
   //disable_disk_interrupt();
   //enable_disk_interrupt();
 
-  if (running->priority == LOW_PRIORITY && t_state[i].priority == HIGH_PRIORITY){
+  if (running->priority == LOW_PRIORITY && t_state[i].priority == HIGH_PRIORITY){ //***** CASO 1
 
     running->state = INIT;
     if (QUANTUM_TICKS < running->remaining_ticks) { //si la rodaja es menor que el tiempo que le queda de ejecucion se asigna la rodaja entera
@@ -183,7 +183,6 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
     disable_interrupt();
     enqueue(lp_queue, running);  //se encola en la lista de lp_queue
     enable_interrupt();
-    printf("\nCreado HP ID: %d", i);
 
 
     old_running = running;  //se actualiza el proceso anterior
@@ -194,7 +193,7 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
     activator (running);
   }
 
-  else if (running->priority == HIGH_PRIORITY && t_state[i].priority == HIGH_PRIORITY && t_state[i].remaining_ticks < running->remaining_ticks){
+  else if (running->priority == HIGH_PRIORITY && t_state[i].priority == HIGH_PRIORITY && t_state[i].remaining_ticks < running->remaining_ticks){ //***** CASO 2
 
     // si el nuevo que entra tiene menor tiempo de ejecucion habra que ejecutarlo antes que el que ya esta ejecutando
 
@@ -205,8 +204,6 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
     sorted_enqueue(hp_queue, running, running->execution_total_ticks);  //se encola en la lista de hp
     enable_interrupt();
 
-    printf("\nCreado HP ID: %d", i);
-
     running = &t_state[i]; //se actualiza el proceso en marcha
     running->state = RUNNING;
     current = running->tid; //se actualiza el id del current
@@ -216,19 +213,22 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
 
   else{
 
-    if(t_state[i].priority == HIGH_PRIORITY){ // es de alta prioridad pero el tiempo de ejecucion es mayor que el que esta ejecutando
+    if(t_state[i].priority == HIGH_PRIORITY){ //***** CASO 3
+
+      // es de alta prioridad pero el tiempo de ejecucion es mayor que el que esta ejecutando
       disable_interrupt();
       sorted_enqueue(hp_queue, &t_state[i], t_state[i].execution_total_ticks);  //se encola en la lista de hp
       enable_interrupt();
 
-      printf("\nCreado HP ID: %d", i);
     }
-    else{ // Si es de baja prioridad se encola
+    else{ //***** CASO 4
+
+      // Si es de baja prioridad se encola
       disable_interrupt();
       enqueue(lp_queue, &t_state[i]);  //se encola en la lista de lp
       enable_interrupt();
 
-      printf("\nCreado LP ID: %d", i);
+      // printf("\nCreado LP ID: %d", i);
     }
   }
 
@@ -336,7 +336,6 @@ TCB* scheduler(){
 /* Timer interrupt */
 void timer_interrupt(int sig)
 {
-    // printf("\nRemaining ticks: %d", running->remaining_ticks);
     if(running->state == RUNNING && running->priority == HIGH_PRIORITY){// si es de alta
       running->remaining_ticks--; //se reduce su ejecucion global
 

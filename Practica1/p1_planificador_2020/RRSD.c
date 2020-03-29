@@ -234,7 +234,7 @@ int mythread_create (void (*fun_addr)(),int priority,int seconds)
 
 /****** End my_thread_create() ******/
 
-
+ 
 /* Read disk syscall */
 int read_disk()
 {

@@ -10,7 +10,7 @@
 
 //Each thread executes this function
 extern void function_thread(int sec);
-extern void function_thread_aux(int sec);
+extern void function_thread_aux(int sec); //funcion para pruebas de RRSD
 
 
 
@@ -18,9 +18,9 @@ int main(int argc, char *argv[])
 {
   int j,k,l,m,a,b,f;
 
-  // read_disk();
+  read_disk();
 
-  mythread_setpriority(HIGH_PRIORITY);
+  mythread_setpriority(LOW_PRIORITY);
   if((f = mythread_create(function_thread,HIGH_PRIORITY,5)) == -1){
       printf("thread failed to initialize\n");
       exit(-1);
@@ -45,11 +45,13 @@ int main(int argc, char *argv[])
     exit(-1);
   }
 
-  if((m = mythread_create(function_thread,HIGH_PRIORITY, 1)) == -1){
+  read_disk();
+
+  if((m = mythread_create(function_thread_aux,HIGH_PRIORITY, 1)) == -1){
     printf("thread failed to initialize\n");
     exit(-1);
   }
-  read_disk();
+  // read_disk();
 
 
   for (a=0; a<10000000; ++a) {
