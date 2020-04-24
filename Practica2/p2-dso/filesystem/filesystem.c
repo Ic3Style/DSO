@@ -15,12 +15,32 @@
 #include "filesystem/auxiliary.h"  // Headers for auxiliary functions
 #include "filesystem/metadata.h"   // Type and structure declaration of the file system
 
+
+//Auxiliary functions
+
+int metadata_setDefault (void){
+
+ // inicializar a los valores por defecto del superbloque, mapas e i-nodos
+    sbloques[0].numMagico            = 0x12345; // ayuda a comprobar que se haya creado por nuestro mkfs
+    sbloques[0].numInodos            = NUM_INODO;
+    sbloques[0].numBloquesMapaInodos = 1;
+    sbloques[0].numBloquesMapaDatos  = 1;
+    sbloques[0].primerInodo          = 1;
+    sbloques[0].numBloquesDatos      = NUM_DATA_BLOCK;
+    sbloques[0].primerBloqueDatos    = 12; //NO SE
+    sbloques[0].tamDispositivo       = 6;
+
+
+}
+
 /*
  * @brief 	Generates the proper file system structure in a storage device, as designed by the student.
  * @return 	0 if success, -1 otherwise.
  */
 int mkFS(long deviceSize)
 {
+
+
 	return -1;
 }
 
