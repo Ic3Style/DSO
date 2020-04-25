@@ -15,5 +15,4 @@ int metadata_setDefault (void);
 
 int metadata_writeToDisk (void);
 
-int metada_readToDisk(void);
-
+int metada_readFromDisk(void);

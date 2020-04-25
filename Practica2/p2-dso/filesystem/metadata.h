@@ -38,11 +38,10 @@ typedef struct {
 typedef struct {
     unsigned int tipo;	                  /* T_FICHERO o T_DIRECTORIO */
     char nombre[32];	                  /* Nombre del fichero/ directorio asociado */
-    unsigned int inodosContenidos[48];   /* tipo==dir: lista de los inodos del directorio */
     unsigned int size;	                  /* Tamaño actual del fichero en bytes */
     unsigned int bloqueDirecto;	          /* Número del bloque directo */
     unsigned int bloqueIndirecto;	  /* Número del bloque indirecto */
-    //char relleno[BLOCK_SIZE-48*sizeof(int)-32]; /* Campo relleno para llenar un bloque */
+    char relleno[BLOCK_SIZE-4*sizeof(int)-32]; /* Campo relleno para llenar un bloque */
 } TipoInodoDisco;
 #define PADDING_INODO (BLOCK_SIZE - sizeof(TipoInodoDisco))
 
@@ -60,9 +59,10 @@ typedef struct {
 
 // Metadatos leídos desde disco
 TipoSuperbloque sbloques[1] ; //Aarray de tipo superbloque de tamaño 1.
-           char i_map[NUM_INODO] ;
-           char b_map[NUM_DATA_BLOCK] ;
- TipoInodoDisco inodos[NUM_INODO] ;
+char i_map[NUM_INODO] ;
+char b_map[NUM_DATA_BLOCK] ;
+
+TipoInodoDisco inodos[NUM_INODO] ;
 
 
 
@@ -72,4 +72,4 @@ struct {
     int abierto  ; // 0: falso, 1: verdadero
 } inodos_x [NUM_INODO] ;
 
-int is_mount = 0; // global para decir si esta montado 
+int is_mount = 0; // global para decir si esta montado

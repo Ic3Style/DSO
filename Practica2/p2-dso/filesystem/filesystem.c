@@ -9,12 +9,14 @@
  * @date	Last revision 01/04/2020
  *
  */
-
+ #include <stdlib.h>
+ #include <stdio.h>
+ #include <string.h>
 
 #include "filesystem/filesystem.h" // Headers for the core functionality
 #include "filesystem/auxiliary.h"  // Headers for auxiliary functions
 #include "filesystem/metadata.h"   // Type and structure declaration of the file system
-
+#include "blocks_cache.c"
 
 //Auxiliary functions
 
@@ -28,10 +30,73 @@ int metadata_setDefault (void){
     sbloques[0].primerInodo          = 1;
     sbloques[0].numBloquesDatos      = NUM_DATA_BLOCK;
     sbloques[0].primerBloqueDatos    = 12; //NO SE
-    sbloques[0].tamDispositivo       = 6;
+    sbloques[0].tamDispositivo       = 50;	//arbitrario
 
+
+    //Establecer a 0 todo, y escribir 0s en el disco.
+    for (int i=0; i<sbloques[0].numInodos; i++) {
+     i_map[i] = 0; // free
+   }
+
+   for (int i=0; i<sbloques[0].numBloquesDatos; i++) {
+     b_map[i] = 0; // free
+   }
+
+   for (int i=0; i<sbloques[0].numInodos; i++) {
+     memset(&(inodos[i]), 0, sizeof(TipoInodoDisco) );
+   }
+
+return 1;
 
 }
+
+
+int metadata_writeToDisk ( void )
+{
+    // escribir bloque 0 de sbloques[0] a disco
+    bwrite(DISK, 0, ((char *)&(sbloques[0])) );
+
+    // escribir los bloques para el mapa de i-nodos
+    for (int i=0; i<sbloques[0].numBloquesMapaInodos; i++) {
+           bwrite(DISK, 2+i, ((char *)i_map + i*BLOCK_SIZE)) ;
+    }
+
+    // escribir los bloques para el mapa de bloques de datos
+    for (int i=0; i<sbloques[0].numBloquesMapaDatos; i++) {
+          bwrite(DISK, 2+i+sbloques[0].numBloquesMapaInodos, ((char *)b_map + i*BLOCK_SIZE));
+    }
+
+    // escribir los i-nodos a disco
+    for (int i=0; i<(sbloques[0].numInodos*sizeof(TipoInodoDisco)/BLOCK_SIZE); i++) {
+          bwrite(DISK, i+sbloques[0].primerInodo, ((char *)inodos + i*BLOCK_SIZE));
+    }
+
+    return 1;
+}
+
+int metadata_readFromDisk ( void )
+{
+    // leer bloque 0 de disco en sbloques[0]
+    bread(DISK, 0, ((char *)&(sbloques[0])) );
+
+    // leer los bloques para el mapa de i-nodos
+    for (int i=0; i<sbloques[0].numBloquesMapaInodos; i++) {
+           bread(DISK, 2+i, ((char *)i_map + i*BLOCK_SIZE)) ;
+    }
+
+    // leer los bloques para el mapa de bloques de datos
+    for (int i=0; i<sbloques[0].numBloquesMapaDatos; i++) {
+          bread(DISK, 2+i+sbloques[0].numBloquesMapaInodos, ((char *)b_map + i*BLOCK_SIZE));
+    }
+
+    // leer los i-nodos a memoria
+    for (int i=0; i<(sbloques[0].numInodos*sizeof(TipoInodoDisco)/BLOCK_SIZE); i++) {
+          bread(DISK, i+sbloques[0].primerInodo, ((char *)inodos + i*BLOCK_SIZE));
+    }
+
+    return 1;
+}
+
 
 /*
  * @brief 	Generates the proper file system structure in a storage device, as designed by the student.
@@ -39,9 +104,26 @@ int metadata_setDefault (void){
  */
 int mkFS(long deviceSize)
 {
+//BUFFER PARA CADA bloque
+  char b[BLOCK_SIZE];
 
+//Inicializa todos los parametros del superbloque, mapas ....
+  metadata_setDefault();
+	sbloques[0].tamDispositivo = deviceSize; //NO ES SEGURO
+//Escribe todo al disco
+  metadata_writeToDisk();
 
-	return -1;
+//Escribir los bloques de datos a 0. Valores iniciales.
+  memset(b, 0, BLOCK_SIZE);
+
+//Escribir cada bloque de datos al disco.
+  for (int i=0; i < sbloques[0].numBloquesDatos; i++) {
+    //Escribe en disco en cada bloque de datos lo que hay en el buffer.
+    bwrite(DISK, sbloques[0].primerBloqueDatos + i, b);
+  }
+
+  // PONER EL CASO DE ERROR Y DEVOLVER -1.
+	return 0;
 }
 
 /*
@@ -50,7 +132,18 @@ int mkFS(long deviceSize)
  */
 int mountFS(void)
 {
-	return -1;
+  // Si ya esta montado. ERROR
+  if (1 == is_mount) {
+      return -1 ;
+  }
+
+  // Leer los metadatos del sistema de ficheros de disco a memoria
+  metadata_readFromDisk() ;
+
+  // Montar
+  is_mount = 1 ; // 0: falso, 1: verdadero
+
+  return 0 ;
 }
 
 /*
@@ -59,7 +152,26 @@ int mountFS(void)
  */
 int unmountFS(void)
 {
-	return -1;
+  // Si hay un fichero abierto. ERROR
+  for (int i = 0; i<sbloques[0].numInodos; i++) {
+    if (inodos_x[i].abierto == 1) {
+      return -1;
+    }
+  }
+
+  // Si ya esta desmontado. ERROR
+  if (0 == is_mount) {
+      return -1 ;
+  }
+
+  // escribir los metadatos del sistema de ficheros de memoria a disco
+  metadata_writeToDisk() ;
+
+  // Desmontar
+  is_mount = 0 ; // 0: falso, 1: verdadero
+
+  return 0;
+
 }
 
 /*
