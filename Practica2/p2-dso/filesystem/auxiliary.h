@@ -1,4 +1,3 @@
-
 /*
  *
  * Operating System Design / Diseño de Sistemas Operativos
@@ -16,3 +15,13 @@ int metadata_setDefault (void);
 int metadata_writeToDisk (void);
 
 int metada_readFromDisk(void);
+
+int namei ( char *fname );
+
+int ialloc (void);
+
+int alloc (void);
+
+int ifree( int inodo_id);
+
+int bfree( int block_id);

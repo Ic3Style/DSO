@@ -27,9 +27,9 @@ int metadata_setDefault (void){
     sbloques[0].numInodos            = NUM_INODO;
     sbloques[0].numBloquesMapaInodos = 1;
     sbloques[0].numBloquesMapaDatos  = 1;
-    sbloques[0].primerInodo          = 1;
+    sbloques[0].primerInodo          = 3;
     sbloques[0].numBloquesDatos      = NUM_DATA_BLOCK;
-    sbloques[0].primerBloqueDatos    = 12; //NO SE
+    sbloques[0].primerBloqueDatos    = 51; //1+1+1+48
     sbloques[0].tamDispositivo       = 50;	//arbitrario
 
 
@@ -58,12 +58,12 @@ int metadata_writeToDisk ( void )
 
     // escribir los bloques para el mapa de i-nodos
     for (int i=0; i<sbloques[0].numBloquesMapaInodos; i++) {
-           bwrite(DISK, 2+i, ((char *)i_map + i*BLOCK_SIZE)) ;
+           bwrite(DISK, 1+i, ((char *)i_map + i*BLOCK_SIZE)) ;
     }
 
     // escribir los bloques para el mapa de bloques de datos
     for (int i=0; i<sbloques[0].numBloquesMapaDatos; i++) {
-          bwrite(DISK, 2+i+sbloques[0].numBloquesMapaInodos, ((char *)b_map + i*BLOCK_SIZE));
+          bwrite(DISK, 1+i+sbloques[0].numBloquesMapaInodos, ((char *)b_map + i*BLOCK_SIZE));
     }
 
     // escribir los i-nodos a disco
@@ -81,12 +81,12 @@ int metadata_readFromDisk ( void )
 
     // leer los bloques para el mapa de i-nodos
     for (int i=0; i<sbloques[0].numBloquesMapaInodos; i++) {
-           bread(DISK, 2+i, ((char *)i_map + i*BLOCK_SIZE)) ;
+           bread(DISK, 1+i, ((char *)i_map + i*BLOCK_SIZE)) ;
     }
 
     // leer los bloques para el mapa de bloques de datos
     for (int i=0; i<sbloques[0].numBloquesMapaDatos; i++) {
-          bread(DISK, 2+i+sbloques[0].numBloquesMapaInodos, ((char *)b_map + i*BLOCK_SIZE));
+          bread(DISK, 1+i+sbloques[0].numBloquesMapaInodos, ((char *)b_map + i*BLOCK_SIZE));
     }
 
     // leer los i-nodos a memoria
@@ -98,12 +98,101 @@ int metadata_readFromDisk ( void )
 }
 
 
+int namei ( char *fname )
+{
+   int i;
+
+   // buscar i-nodo con nombre <fname>
+   for (i=0; i<sbloques[0].numInodos; i++)
+   {
+         if (! strcmp(inodos[i].nombre, fname)) {
+               return i;
+         }
+   }
+
+   return -1;
+}
+
+
+int ialloc (void){
+
+  int i;
+
+  // buscar un i-nodo libre
+  for (i=0; i<sbloques[0].numInodos; i++)
+  {
+        if (i_map[i] == 0)
+        {
+            // inodo ocupado ahora
+            i_map[i] = 1;
+            // valores por defecto en el i-nodo
+            memset(&(inodos[i]),0, sizeof(TipoInodoDisco));
+            // devolver identificador de i-nodo
+            return i;
+        }
+  } //Error no hay inodos libres
+
+  return -1;
+}
+
+
+int alloc ( void )
+{
+    char b[BLOCK_SIZE];
+    int i;
+
+    for (i=0; i<sbloques[0].numBloquesDatos; i++)
+    {
+          if (b_map[i] == 0)
+          {
+              // bloque ocupado ahora
+              b_map[i] = 1;
+              // valores por defecto en el bloque
+              memset(b, 0, BLOCK_SIZE);
+              bwrite(DISK, sbloques[0].primerBloqueDatos + i, b);
+              // devolver identificador del bloque
+              return i;
+          }
+    }
+
+    return -1;
+}
+
+int ifree ( int inodo_id )
+{
+    // comprobar validez de inodo_id
+    if (inodo_id > sbloques[0].numInodos) {
+        return -1;
+    }
+
+    // liberar i-nodo
+    i_map[inodo_id] = 0;
+
+    return 1;
+}
+
+int bfree ( int block_id )
+{
+    // comprobar validez de block_id
+    if (block_id > sbloques[0].numBloquesDatos) {
+        return -1;
+    }
+
+    // liberar bloque
+    b_map[block_id] = 0;
+
+    return -1;
+}
+
+
 /*
  * @brief 	Generates the proper file system structure in a storage device, as designed by the student.
  * @return 	0 if success, -1 otherwise.
  */
 int mkFS(long deviceSize)
 {
+  if(deviceSize > 614400) //tamanho maximo de disco
+    return -1;
 //BUFFER PARA CADA bloque
   char b[BLOCK_SIZE];
 
@@ -155,6 +244,7 @@ int unmountFS(void)
   // Si hay un fichero abierto. ERROR
   for (int i = 0; i<sbloques[0].numInodos; i++) {
     if (inodos_x[i].abierto == 1) {
+      printf("FICHERO ABIERTO\n %d", i);
       return -1;
     }
   }
@@ -180,7 +270,37 @@ int unmountFS(void)
  */
 int createFile(char *fileName)
 {
-	return -2;
+
+  if(strlen(fileName)>32) //tamanho maximo del nombre de un fichero
+    return -2;
+
+  int block_id, inodo_id ;
+  //Si ya existe el nombre de ese fichero debe retornar error
+  if (namei(fileName) != -1){
+    return -1;
+  }
+
+  inodo_id = ialloc() ;
+  if (inodo_id < 0) { //no hay i-nodos libres por lo que retorna -2
+    return -2;
+  }
+
+  block_id = alloc();
+  if (block_id < 0) { //no hay bloques libres por lo que retorna -2
+    ifree(inodo_id); // libera inodo que se había ocupado
+    return -2 ;
+  }
+
+  inodos[inodo_id].tipo = T_FICHERO ; //1
+  strcpy(inodos[inodo_id].nombre, fileName);
+  //CUIDADO
+  inodos[inodo_id].bloqueDirecto[0] = block_id ;
+  //
+  inodos_x[inodo_id].posicion    = 0;
+  inodos_x[inodo_id].abierto     = 1;
+
+  return 0;
+
 }
 
 /*
@@ -189,16 +309,55 @@ int createFile(char *fileName)
  */
 int removeFile(char *fileName)
 {
-	return -2;
+  int inodo_id;
+
+  //Si el nombre del fichero es mayor que 32  error return -2;
+  if(strlen(fileName)>32)
+    return -2;
+
+  inodo_id = namei(fileName);
+  //Error si el fichero no existe.
+  if (inodo_id < 0){
+    return -1;
+  }
+
+  // HACER FREE a los bloques.
+  for(int i=0; i<5; i++){ //liberamos los bloques asociados
+    if(inodos[inodo_id].bloqueDirecto[i]!=0)
+      bfree(inodos[inodo_id].bloqueDirecto[i]);
+  }
+
+  memset(&(inodos[inodo_id]), 0, sizeof(TipoInodoDisco));
+  ifree(inodo_id) ;
+  //success
+	return 0;
 }
 
 /*
  * @brief	Opens an existing file.
  * @return	The file descriptor if possible, -1 if file does not exist, -2 in case of error..
  */
+
 int openFile(char *fileName)
 {
-	return -2;
+  //Si el fichero no existe error
+  int inodo_id;
+
+  //Si el nombre del fichero es mayor que 32  error return -2;
+  if(strlen(fileName)>32)
+    return -2;
+
+  inodo_id = namei(fileName);
+  //Error si el fichero no existe.
+  if (inodo_id < 0){
+    return -1;
+  }
+
+
+  inodos_x[inodo_id].posicion = 0;
+  inodos_x[inodo_id].abierto  = 1;
+
+	return inodo_id;
 }
 
 /*
@@ -207,8 +366,24 @@ int openFile(char *fileName)
  */
 int closeFile(int fileDescriptor)
 {
-	return -1;
+
+  //Error si el descriptor es negativo o es mayor que el numero de inodos, q va de 0 a 47.
+  if (fileDescriptor < 0 || fileDescriptor > sbloques[0].numInodos - 1){
+    return -1;
+  }
+
+  //Actualizar los metadatos del fichero:
+
+  inodos_x[fileDescriptor].posicion = 0;
+  inodos_x[fileDescriptor].abierto  = 0;
+
+  //F3
+  metadata_writeToDisk();
+
+	return 0;
 }
+
+
 
 /*
  * @brief	Reads a number of bytes from a file and stores them in a buffer.

@@ -368,6 +368,11 @@ int nanofs_open ( char *nombre )
         return inodo_id ;
     }
 
+    //Devolver error si el fichero ya está ABIERTO
+    if (inodos_x[inodo_id] == 1){
+      return -1;
+    }
+
     inodos_x[inodo_id].posicion = 0;
     inodos_x[inodo_id].abierto  = 1;
 
@@ -565,4 +570,3 @@ int main()
 
    return 0 ;
 }
-

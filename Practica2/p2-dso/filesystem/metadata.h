@@ -39,16 +39,15 @@ typedef struct {
     unsigned int tipo;	                  /* T_FICHERO o T_DIRECTORIO */
     char nombre[32];	                  /* Nombre del fichero/ directorio asociado */
     unsigned int size;	                  /* Tamaño actual del fichero en bytes */
-    unsigned int bloqueDirecto;	          /* Número del bloque directo */
-    unsigned int bloqueIndirecto;	  /* Número del bloque indirecto */
-    char relleno[BLOCK_SIZE-4*sizeof(int)-32]; /* Campo relleno para llenar un bloque */
+    unsigned int bloqueDirecto[5];	          /* Número de los bloques de datos del i-nodo, maximo 5 */
+    char relleno[BLOCK_SIZE-7*sizeof(int)-32]; /* Campo relleno para llenar un bloque */
 } TipoInodoDisco;
 #define PADDING_INODO (BLOCK_SIZE - sizeof(TipoInodoDisco))
 
 
 //Tipo de Inodo.
 #define T_FICHERO    1
-#define T_DIRECTORIO 2
+#define T_DIRECTORIO 2 //no se usa
 
 
 //Cambiar
