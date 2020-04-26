@@ -239,12 +239,12 @@ int nanofs_meta_readFromDisk ( void )
 
     // leer los bloques para el mapa de i-nodos
     for (int i=0; i<sbloques[0].numBloquesMapaInodos; i++) {
-           bread(DISK, 2+i, ((char *)i_map + i*BLOCK_SIZE)) ;
+           bread(DISK, 1+i, ((char *)i_map + i*BLOCK_SIZE)) ;
     }
 
     // leer los bloques para el mapa de bloques de datos
     for (int i=0; i<sbloques[0].numBloquesMapaDatos; i++) {
-          bread(DISK, 2+i+sbloques[0].numBloquesMapaInodos, ((char *)b_map + i*BLOCK_SIZE));
+          bread(DISK, 1+i+sbloques[0].numBloquesMapaInodos, ((char *)b_map + i*BLOCK_SIZE));
     }
 
     // leer los i-nodos a memoria
@@ -262,12 +262,12 @@ int nanofs_meta_writeToDisk ( void )
 
     // escribir los bloques para el mapa de i-nodos
     for (int i=0; i<sbloques[0].numBloquesMapaInodos; i++) {
-           bwrite(DISK, 2+i, ((char *)i_map + i*BLOCK_SIZE)) ;
+           bwrite(DISK, 1+i, ((char *)i_map + i*BLOCK_SIZE)) ;
     }
 
     // escribir los bloques para el mapa de bloques de datos
     for (int i=0; i<sbloques[0].numBloquesMapaDatos; i++) {
-          bwrite(DISK, 2+i+sbloques[0].numBloquesMapaInodos, ((char *)b_map + i*BLOCK_SIZE));
+          bwrite(DISK, 1+i+sbloques[0].numBloquesMapaInodos, ((char *)b_map + i*BLOCK_SIZE));
     }
 
     // escribir los i-nodos a disco
