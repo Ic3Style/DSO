@@ -429,7 +429,7 @@ int readFile(int fileDescriptor, void *buffer, int numBytes)
 {
   char b[BLOCK_SIZE*5] ;
   int b_id ;
-  int nbytes;
+  // int nbytes;
 
   //Si el numero de Bytes a leer es mayor que el tamaño del fichero por leer
   if (inodos_x[fileDescriptor].posicion + numBytes > inodos[fileDescriptor].size) {
@@ -444,9 +444,9 @@ int readFile(int fileDescriptor, void *buffer, int numBytes)
 
   for(int i =0; inodos[fileDescriptor].bloqueDirecto[i] > -1; i++){
     b_id = inodos[fileDescriptor].bloqueDirecto[i];
-    nbytes = bread(DISK, sbloques[0].primerBloqueDatos+b_id, b);
-    inodos_x[fileDescriptor].posicion += nbytes;
+    bread(DISK, sbloques[0].primerBloqueDatos+b_id, b);
   }
+        inodos_x[fileDescriptor].posicion += numBytes;
     memmove(buffer, b+inodos_x[fileDescriptor].posicion, numBytes);
 
   // b_id = nanofs_bmap(fd, inodos_x[fd].posicion);
