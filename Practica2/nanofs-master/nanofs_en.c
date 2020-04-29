@@ -68,11 +68,11 @@ typedef struct {
     unsigned int magicNumber;	            /* Superblock magic number: 0x12345 */
     unsigned int numInodeMapBlocks;         /* Number of block for the inode map */
     unsigned int numDataMapBlocks;          /* Number of block for the data map */
-    unsigned int numInodos; 	            /* Number of inodes in the device */
+    unsigned int numInodes; 	            /* Number of inodes in the device */
     unsigned int firstInode;	            /* Block number of the first inode (root inode) */
     unsigned int numDataBlocks;             /* Number of data blocks in the device */
     unsigned int firstDataBlock;            /* Block number of the first data block */
-    unsigned int devSize;	            /* Total size of the device in bytes /
+    unsigned int devSize;	            /* Total size of the device in bytes */
     char padding[BLOCK_SIZE-8*sizeof(int)]; /* Padding (to fit in a block) */
 } Superblock_t;
 
@@ -122,7 +122,7 @@ int nanofs_ialloc ( void )
     int i;
 
     // search for a free i-node
-    for (i=0; i<sbloques[0].numInodos; i++)
+    for (i=0; i<sbloques[0].numInodes; i++)
     {
           if (i_map[i] == 0)
           {
@@ -164,7 +164,7 @@ int nanofs_alloc ( void )
 int nanofs_ifree ( int inodo_id )
 {
     // check inode id.
-    if (inodo_id > sbloques[0].numInodos) {
+    if (inodo_id > sbloques[0].numInodes) {
         return -1;
     }
 
@@ -192,7 +192,7 @@ int nanofs_namei ( char *fname )
    int i;
 
    // search an i-node with name <fname>
-   for (i=0; i<sbloques[0].numInodos; i++)
+   for (i=0; i<sbloques[0].numInodes; i++)
    {
          if (! strcmp(inodos[i].nombre, fname)) {
                return i;
@@ -204,28 +204,28 @@ int nanofs_namei ( char *fname )
 
 int nanofs_bmap ( int inodo_id, int offset )
 {
-    int b[BLOCK_SIZE/4];
+    int b[BLOCK_SIZE/4] ;
+    int logical_block ;
 
     // check inode id.
-    if (inodo_id > sbloques[0].numInodos) {
+    if (inodo_id > sbloques[0].numInodes) {
         return -1;
     }
 
+    // logical block
+    logical_block = offset / BLOCK_SIZE ;
+    if (logical_block > (BLOCK_SIZE/4)) {
+        return -1 ;
+    }
+
     // return direct block
-    if (offset < BLOCK_SIZE) {
+    if (0 == logical_block) {
         return inodos[inodo_id].directBlock;
     }
 
-    if (offset < BLOCK_SIZE*BLOCK_SIZE/4)
-    {
-         bread(DISK,
-               sbloques[0].firstDataBlock +
-               inodos[inodo_id].indirectBlock, b);
-         offset = (offset - BLOCK_SIZE) / BLOCK_SIZE;
-         return b[offset] ;
-    }
-
-    return -1;
+    // return indirect block
+    bread(DISK, sbloques[0].firstDataBlock + inodos[inodo_id].indirectBlock, b);
+    return b[logical_block - 1] ;
 }
 
 
@@ -249,7 +249,7 @@ int nanofs_meta_readFromDisk ( void )
     }
 
     // read i-nodes to memory
-    for (int i=0; i<(sbloques[0].numInodos*sizeof(DiskInode_t)/BLOCK_SIZE); i++) {
+    for (int i=0; i<(sbloques[0].numInodes*sizeof(DiskInode_t)/BLOCK_SIZE); i++) {
           bread(DISK, i+sbloques[0].firstInode, ((char *)inodos + i*BLOCK_SIZE));
     }
 
@@ -272,7 +272,7 @@ int nanofs_meta_writeToDisk ( void )
     }
 
     // write i-nodes to disk
-    for (int i=0; i<(sbloques[0].numInodos*sizeof(DiskInode_t)/BLOCK_SIZE); i++) {
+    for (int i=0; i<(sbloques[0].numInodes*sizeof(DiskInode_t)/BLOCK_SIZE); i++) {
           bwrite(DISK, i+sbloques[0].firstInode, ((char *)inodos + i*BLOCK_SIZE));
     }
 
@@ -283,7 +283,7 @@ int nanofs_meta_setDefault ( void )
 {
     // set the default values of the superblock, inode map, etc.
     sbloques[0].magicNumber        = 0x12345; // help to check our mkfs was used
-    sbloques[0].numInodos          = NUM_INODES;
+    sbloques[0].numInodes          = NUM_INODES;
     sbloques[0].numInodeMapBlocks  = 1;
     sbloques[0].numDataMapBlocks   = 1;
     sbloques[0].firstInode         = 1;
@@ -291,7 +291,7 @@ int nanofs_meta_setDefault ( void )
     sbloques[0].firstDataBlock     = 12;
     sbloques[0].devSize            = 20;
 
-    for (int i=0; i<sbloques[0].numInodos; i++) {
+    for (int i=0; i<sbloques[0].numInodes; i++) {
          i_map[i] = 0; // free
     }
 
@@ -299,7 +299,7 @@ int nanofs_meta_setDefault ( void )
          b_map[i] = 0; // free
     }
 
-    for (int i=0; i<sbloques[0].numInodos; i++) {
+    for (int i=0; i<sbloques[0].numInodes; i++) {
          memset(&(inodos[i]), 0, sizeof(DiskInode_t) );
     }
 
@@ -323,7 +323,14 @@ int nanofs_mount ( void )
 
 int nanofs_umount ( void )
 {
+    // if NOT mounted -> error
     if (0 == is_mounted) {
+        return -1 ;
+    }
+
+    // if any file is open -> error
+    for (int i=0; i<sbloques[0].numInodes; i++) {
+    if (1 == inodos_x[i].oppened)
         return -1 ;
     }
 

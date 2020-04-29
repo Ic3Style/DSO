@@ -203,28 +203,28 @@ int nanofs_namei ( char *fname )
 
 int nanofs_bmap ( int inodo_id, int offset )
 {
-    int b[BLOCK_SIZE/4];
+    int b[BLOCK_SIZE/4] ;
+    int bloque_logico ;
 
     // comprobar validez de inodo_id
     if (inodo_id > sbloques[0].numInodos) {
         return -1;
     }
 
-    // bloque de datos asociado
-    if (offset < BLOCK_SIZE) {
+    // bloque lógico de datos asociado
+    bloque_logico = offset / BLOCK_SIZE ;
+    if (bloque_logico > (BLOCK_SIZE/4)) {
+        return -1 ;
+    }
+
+    // devolver referencia a bloque directo 
+    if (0 == bloque_logico) {
         return inodos[inodo_id].bloqueDirecto;
     }
 
-    if (offset < BLOCK_SIZE*BLOCK_SIZE/4)
-    {
-         bread(DISK,
-               sbloques[0].primerBloqueDatos +
-               inodos[inodo_id].bloqueIndirecto, b);
-         offset = (offset - BLOCK_SIZE) / BLOCK_SIZE;
-         return b[offset] ;
-    }
-
-    return -1;
+    // devolver referencia dentro de bloque indirecto
+    bread(DISK, sbloques[0].primerBloqueDatos + inodos[inodo_id].bloqueIndirecto, b);
+    return b[bloque_logico - 1] ;
 }
 
 
@@ -239,12 +239,12 @@ int nanofs_meta_readFromDisk ( void )
 
     // leer los bloques para el mapa de i-nodos
     for (int i=0; i<sbloques[0].numBloquesMapaInodos; i++) {
-           bread(DISK, 1+i, ((char *)i_map + i*BLOCK_SIZE)) ;
+           bread(DISK, 2+i, ((char *)i_map + i*BLOCK_SIZE)) ;
     }
 
     // leer los bloques para el mapa de bloques de datos
     for (int i=0; i<sbloques[0].numBloquesMapaDatos; i++) {
-          bread(DISK, 1+i+sbloques[0].numBloquesMapaInodos, ((char *)b_map + i*BLOCK_SIZE));
+          bread(DISK, 2+i+sbloques[0].numBloquesMapaInodos, ((char *)b_map + i*BLOCK_SIZE));
     }
 
     // leer los i-nodos a memoria
@@ -262,12 +262,12 @@ int nanofs_meta_writeToDisk ( void )
 
     // escribir los bloques para el mapa de i-nodos
     for (int i=0; i<sbloques[0].numBloquesMapaInodos; i++) {
-           bwrite(DISK, 1+i, ((char *)i_map + i*BLOCK_SIZE)) ;
+           bwrite(DISK, 2+i, ((char *)i_map + i*BLOCK_SIZE)) ;
     }
 
     // escribir los bloques para el mapa de bloques de datos
     for (int i=0; i<sbloques[0].numBloquesMapaDatos; i++) {
-          bwrite(DISK, 1+i+sbloques[0].numBloquesMapaInodos, ((char *)b_map + i*BLOCK_SIZE));
+          bwrite(DISK, 2+i+sbloques[0].numBloquesMapaInodos, ((char *)b_map + i*BLOCK_SIZE));
     }
 
     // escribir los i-nodos a disco
@@ -322,7 +322,14 @@ int nanofs_mount ( void )
 
 int nanofs_umount ( void )
 {
+    // si NO mountado -> error
     if (0 == esta_montado) {
+        return -1 ;
+    }
+
+    // si algún fichero está abierto -> error
+    for (int i=0; i<sbloques[0].numInodos; i++) {
+    if (1 == inodos_x[i].abierto)
         return -1 ;
     }
 
@@ -565,3 +572,4 @@ int main()
 
    return 0 ;
 }
+
