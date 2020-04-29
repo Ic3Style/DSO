@@ -18,6 +18,14 @@ static inline void bitmap_setbit(char *bitmap_, int i_, int val_) {
     bitmap_[(i_ >> 3)] &= ~(1 << (i_ & 0x07));
 }
 
+static inline void bitmap_print(char *bitmap_, int size) {
+
+  for (int i = 0; i < size; i++){
+    printf("%d", bitmap_getbit(bitmap_, i));
+  }
+  printf("\n");
+}
+
 #define BLOCK_SIZE 2048 //Size of block in FS.
 #define DISK "disk.dat"
 
@@ -39,7 +47,7 @@ typedef struct {
     unsigned int tipo;	                  /* T_FICHERO o T_DIRECTORIO */
     char nombre[32];	                  /* Nombre del fichero/ directorio asociado */
     unsigned int size;	                  /* Tamaño actual del fichero en bytes */
-    unsigned int bloqueDirecto[5];	          /* Número de los bloques de datos del i-nodo, maximo 5 */
+    int bloqueDirecto[5];	          /* Número de los bloques de datos del i-nodo, maximo 5 */
     char relleno[BLOCK_SIZE-7*sizeof(int)-32]; /* Campo relleno para llenar un bloque */
 } TipoInodoDisco;
 #define PADDING_INODO (BLOCK_SIZE - sizeof(TipoInodoDisco))
@@ -69,6 +77,7 @@ TipoInodoDisco inodos[NUM_INODO] ;
 struct {
     int posicion ; // posición de lectura/escritura
     int abierto  ; // 0: falso, 1: verdadero
+    int integridad ; // 0: no tiene. 1: si tiene
 } inodos_x [NUM_INODO] ;
 
 int is_mount = 0; // global para decir si esta montado
