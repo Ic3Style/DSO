@@ -44,23 +44,27 @@ typedef struct {
 
 
 typedef struct {
-    unsigned int tipo;	                  /* T_FICHERO o T_DIRECTORIO */
+    unsigned int tipo;                  /* T_FICHERO o T_DIRECTORIO */
+
     char nombre[32];	                  /* Nombre del fichero/ directorio asociado */
     unsigned int size;	                  /* Tamaño actual del fichero en bytes */
     int bloqueDirecto[5];	          /* Número de los bloques de datos del i-nodo, maximo 5 */
-    char relleno[BLOCK_SIZE-7*sizeof(int)-32]; /* Campo relleno para llenar un bloque */
+    uint32_t firmasIntegridad[5];    /*arra y de firmas de integridad para cada bloque del fichero.*/
+
+    char relleno[BLOCK_SIZE-7*sizeof(int)-32-5*sizeof(uint32_t)]; /* Campo relleno para llenar un bloque */
 } TipoInodoDisco;
 #define PADDING_INODO (BLOCK_SIZE - sizeof(TipoInodoDisco))
 
 
 //Tipo de Inodo.
 #define T_FICHERO    1
-#define T_DIRECTORIO 2 //no se usa
+#define T_ENLACE_S   2
 
 
-//Cambiar
+//INODOS Y BLOQUES
 #define NUM_INODO 48
 #define NUM_DATA_BLOCK 240
+#define FILE_BLOCKS 5 // un fichero tiene 5 bloques como máximo
 
 
 
@@ -81,3 +85,17 @@ struct {
 } inodos_x [NUM_INODO] ;
 
 int is_mount = 0; // global para decir si esta montado
+
+static inline void sblock_print() {
+
+  printf("%d", sbloques[0].numMagico);
+  printf("%d", sbloques[0].numInodos);
+  printf("%d", sbloques[0].numBloquesMapaInodos);
+  printf("%d", sbloques[0].numBloquesMapaDatos);
+  printf("%d", sbloques[0].primerInodo);
+  printf("%d", sbloques[0].numBloquesDatos);
+  printf("%d", sbloques[0].primerBloqueDatos);
+  printf("%d", sbloques[0].tamDispositivo);
+
+  printf("\n");
+}
