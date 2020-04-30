@@ -203,28 +203,28 @@ int nanofs_namei ( char *fname )
 
 int nanofs_bmap ( int inodo_id, int offset )
 {
-    int b[BLOCK_SIZE/4];
+    int b[BLOCK_SIZE/4] ;
+    int bloque_logico ;
 
     // comprobar validez de inodo_id
     if (inodo_id > sbloques[0].numInodos) {
         return -1;
     }
 
-    // bloque de datos asociado
-    if (offset < BLOCK_SIZE) {
+    // bloque lógico de datos asociado
+    bloque_logico = offset / BLOCK_SIZE ;
+    if (bloque_logico > (BLOCK_SIZE/4)) {
+        return -1 ;
+    }
+
+    // devolver referencia a bloque directo 
+    if (0 == bloque_logico) {
         return inodos[inodo_id].bloqueDirecto;
     }
 
-    if (offset < BLOCK_SIZE*BLOCK_SIZE/4)
-    {
-         bread(DISK,
-               sbloques[0].primerBloqueDatos +
-               inodos[inodo_id].bloqueIndirecto, b);
-         offset = (offset - BLOCK_SIZE) / BLOCK_SIZE;
-         return b[offset] ;
-    }
-
-    return -1;
+    // devolver referencia dentro de bloque indirecto
+    bread(DISK, sbloques[0].primerBloqueDatos + inodos[inodo_id].bloqueIndirecto, b);
+    return b[bloque_logico - 1] ;
 }
 
 
@@ -322,7 +322,14 @@ int nanofs_mount ( void )
 
 int nanofs_umount ( void )
 {
+    // si NO mountado -> error
     if (0 == esta_montado) {
+        return -1 ;
+    }
+
+    // si algún fichero está abierto -> error
+    for (int i=0; i<sbloques[0].numInodos; i++) {
+    if (1 == inodos_x[i].abierto)
         return -1 ;
     }
 
@@ -366,11 +373,6 @@ int nanofs_open ( char *nombre )
     inodo_id = nanofs_namei(nombre) ;
     if (inodo_id < 0) {
         return inodo_id ;
-    }
-
-    //Devolver error si el fichero ya está ABIERTO
-    if (inodos_x[inodo_id] == 1){
-      return -1;
     }
 
     inodos_x[inodo_id].posicion = 0;
@@ -570,3 +572,4 @@ int main()
 
    return 0 ;
 }
+
