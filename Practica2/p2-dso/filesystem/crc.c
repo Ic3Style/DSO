@@ -15,7 +15,9 @@
 
 #include "filesystem/crc.h"	// Headers for the CRC functionality
 
-#include "zlib/zlib.h"			// Auxiliary library for CRC32
+#include "../zlib/zlib.h"			// Auxiliary library for CRC32
+
+//#include "zlib.h"
 
 // Look-up table for CRC16
 static const uint16_t crc16tab[256]= {
