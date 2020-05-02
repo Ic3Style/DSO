@@ -600,207 +600,207 @@ int lseekFile(int fileDescriptor, long offset, int whence)
  * @return	0 if success, -1 if the file is corrupted, -2 in case of error.
  */
 
-// int checkFile (char * fileName)
-// {
-//     int inodo_id;
-//     int b_id;
-//
-//   //Si el nombre del fichero es mayor que 32  error return -2;
-//   if(strlen(fileName)>32){
-//     printf("El nombre del fichero es mayor que el permitido");
-//     return -2;
-//   }
-//     inodo_id = namei(fileName);
-//     //Si el fichero esta abierto error
-//     if(inodos_x[inodo_id].abierto == 1){
-//       printf("El fichero %s está abierto\n", fileName );
-//       return -2;
-//   }
-//
-//   //Si no tiene integridad
-//   if (inodos_x[inodo_id].integridad == 0){
-//     return -2;
-//   }
-//   //Tiene integridad
-//
-//   //Comprobar la integridad de ese fichero:
-//   int auxPos= inodos_x[inodo_id].posicion;
-//   inodos_x[inodo_id].posicion = 0;
-//   //Añadir integridad:
-//   for(int i = 0; i < FILE_BLOCKS; i++){
-//     char buffer[2048]; //to write a block
-//     char * pt_buffer = buffer;
-//     uint32_t val;
-//     //Fichero para cada bloque de fichero con datos
-//     if (inodos[inodo_id].bloqueDirecto[i] != -1){
-//       //Obtenemos el bloque de cada inodo
-//       b_id = bmap(inodo_id, inodos_x[inodo_id].posicion + i*BLOCK_SIZE);
-//       //Escribimos en el for
-//       bread(DISK, sbloques[0].primerBloqueDatos + b_id, pt_buffer);
-//       //Se aplica CRC32 y se obtiene la firma
-//       val = CRC32((const unsigned char *)pt_buffer, 2048);
-//       if(inodos[inodo_id].firmasIntegridad[i] != val){
-//         //Esta corrupto
-//         return -1;
-//       }
-//     }
-//     /*Si no hay bloques de datos el valor es -1
-//     inodos[inodo_id].firmasIntegridad[i] = -1;
-//     printf("FIRMA BLOQUE %d es : %x", i, val);*/
-//   }
-//   inodos_x[inodo_id].posicion = auxPos;
-//   return 0;
-// }
+int checkFile (char * fileName)
+{
+    int inodo_id;
+    int b_id;
+
+  //Si el nombre del fichero es mayor que 32  error return -2;
+  if(strlen(fileName)>32){
+    printf("El nombre del fichero es mayor que el permitido");
+    return -2;
+  }
+    inodo_id = namei(fileName);
+    //Si el fichero esta abierto error
+    if(inodos_x[inodo_id].abierto == 1){
+      printf("El fichero %s está abierto\n", fileName );
+      return -2;
+  }
+
+  //Si no tiene integridad
+  if (inodos_x[inodo_id].integridad == 0){
+    return -2;
+  }
+  //Tiene integridad
+
+  //Comprobar la integridad de ese fichero:
+  int auxPos= inodos_x[inodo_id].posicion;
+  inodos_x[inodo_id].posicion = 0;
+  //Añadir integridad:
+  for(int i = 0; i < FILE_BLOCKS; i++){
+    char buffer[2048]; //to write a block
+    char * pt_buffer = buffer;
+    uint32_t val;
+    //Fichero para cada bloque de fichero con datos
+    if (inodos[inodo_id].bloqueDirecto[i] != -1){
+      //Obtenemos el bloque de cada inodo
+      b_id = bmap(inodo_id, inodos_x[inodo_id].posicion + i*BLOCK_SIZE);
+      //Escribimos en el for
+      bread(DISK, sbloques[0].primerBloqueDatos + b_id, pt_buffer);
+      //Se aplica CRC32 y se obtiene la firma
+      val = CRC32((const unsigned char *)pt_buffer, 2048);
+      if(inodos[inodo_id].firmasIntegridad[i] != val){
+        //Esta corrupto
+        return -1;
+      }
+    }
+    /*Si no hay bloques de datos el valor es -1
+    inodos[inodo_id].firmasIntegridad[i] = -1;
+    printf("FIRMA BLOQUE %d es : %x", i, val);*/
+  }
+  inodos_x[inodo_id].posicion = auxPos;
+  return 0;
+}
 
 
-// /*
-//  * @brief	Include integrity on a file.
-//  * @return	0 if success, -1 if the file does not exists, -2 in case of error.
-//  */
-//
-// int includeIntegrity (char * fileName)
-// {
-//
-//   int inodo_id;
-//   int b_id;
-//
-//   inodo_id = namei(fileName);
-//   //Error si el fichero no existe.
-//   if (inodo_id < 0){
-//     printf("(ERROR: El fichero %s no existe)\n", fileName);
-//     return -1;
-//   }
-//
-//   if (inodos_x[inodo_id].integridad == 1){
-//     printf("ERROR: El fichero  %s ya tiene integridad\n",fileName );
-//     return -2;
-//   }
-//
-//   int auxPos= inodos_x[inodo_id].posicion;
-//   inodos_x[inodo_id].posicion = 0;
-//   //Añadir integridad:
-//   for(int i = 0; i < FILE_BLOCKS; i++){
-//     char buffer[2048]; //to write a block
-//     char * pt_buffer = buffer;
-//     uint32_t val;
-//     //Fichero para cada bloque de fichero con datos
-//     if (inodos[inodo_id].bloqueDirecto[i] != -1){
-//       //Obtenemos el bloque de cada inodo
-//       b_id = bmap(inodo_id, inodos_x[inodo_id].posicion + i*BLOCK_SIZE);
-//       //Escribimos en el for
-//       bread(DISK, sbloques[0].primerBloqueDatos + b_id, pt_buffer);
-//       //Se aplica CRC32 y se obtiene la firma
-//       val = CRC32((const unsigned char *)pt_buffer, 2048);
-//       inodos[inodo_id].firmasIntegridad[i] = val;
-//     }
-//     //Si no hay bloques de datos el valor es -1
-//     inodos[inodo_id].firmasIntegridad[i] = -1;
-//     printf("FIRMA BLOQUE %d es : %x", i, val);
-//   }
-//
-//   // Se ha incluido integridad en ese fichero
-//   inodos_x[inodo_id].posicion = auxPos;
-//   inodos_x[inodo_id].integridad =1;
-//
-//   return 0;
-// }
-//
-// /*
-//  * @brief	Opens an existing file and checks its integrity
-//  * @return	The file descriptor if possible, -1 if file does not exist, -2 if the file is corrupted, -3 in case of error
-//  */
-// int openFileIntegrity(char *fileName)
-// {
-//
-//   int inodo_id;
-//   //Si el nombre del fichero es mayor que 32  error return -2;
-//   if(strlen(fileName)>32)
-//     return -1;
-//
-//   inodo_id = namei(fileName);
-//   //Error si el fichero no existe.
-//   if (inodo_id < 0){
-//     printf("(ERROR: El fichero %s no existe)\n", fileName);
-//     return -1;
-//   }
-//
-//   //Si nunca se ha calculado la integridad del fichero
-//   if(inodos_x[inodo_id].integridad == 0){
-//     printf("ERROR: El fichero %s no tiene integridad\n", fileName);
-//   return -3;
-//   }
-//
-//   //si la integridad no es correcta
-//   if (checkFile(fileName) == -1){
-//   return -2;
-//   }
-//
-//   //Si la integridad es correcta
-//   inodos_x[inodo_id].posicion = 0;
-//   inodos_x[inodo_id].abierto  = 1;
-//   return inodo_id;
-//
-// }
-//
-// /*
-//  * @brief	Closes a file and updates its integrity.
-//  * @return	0 if success, -1 otherwise.
-//  */
-//  int closeFileIntegrity(int fileDescriptor)
-//  {
-//
-//    int fd = fileDescriptor;
-//    int b_id;
-//    //Error si el descriptor es negativo o es mayor que el numero de inodos, q va de 0 a 47.
-//    if (fileDescriptor < 0 || fileDescriptor > sbloques[0].numInodos - 1){
-//      printf("Error: El fichero %d tiene un fd no valido\n", fd);
-//      return -1;
-//    }
-//
-//    if(inodos_x[fd].abierto  == 0){
-//      printf("Error: El fichero %d ya no esta abierto\n", fd);
-//      return -1;
-//    }
-//
-//    //Si nunca se ha calculado la integridad del fichero n
-//    if(inodos_x[fd].integridad == 0){
-//      printf("ERROR: El fichero %d no tiene integridad\n", fd);
-//    return -1;
-//    }
-//
-//    //actualizar el crc.
-//    int auxPos= inodos_x[fd].posicion;
-//    inodos_x[fd].posicion = 0;
-//    for(int i = 0; i < FILE_BLOCKS; i++){
-//      char buffer[2048]; //to write a block
-//      char * pt_buffer = buffer;
-//      uint32_t val;
-//      //Fichero para cada bloque de fichero con datos
-//      if (inodos[fd].bloqueDirecto[i] != -1){
-//        //Obtenemos el bloque de cada inodo
-//        b_id = bmap(fd, inodos_x[fd].posicion + i*BLOCK_SIZE);
-//        //Escribimos en el for
-//        bread(DISK, sbloques[0].primerBloqueDatos + b_id, pt_buffer);
-//        //Se aplica CRC32 y se obtiene la firma
-//        val = CRC32((const unsigned char *)pt_buffer, 2048);
-//        inodos[fd].firmasIntegridad[i] = val;
-//      }
-//      //Si no hay bloques de datos el valor es -1
-//      inodos[fd].firmasIntegridad[i] = -1;
-//      printf("FIRMA BLOQUE %d es : %x", i, val);
-//    }
-//
-//    // Se ha incluido integridad en ese fichero
-//    inodos_x[fd].posicion = auxPos;
-//    inodos_x[fd].integridad =1;
-//
-//     return 0;
-//     }
-//
-// /*
-//  * @brief	Creates a symbolic link to an existing file in the file system.
-//  * @return	0 if success, -1 if file does not exist, -2 in case of error.
-//  */
+/*
+ * @brief	Include integrity on a file.
+ * @return	0 if success, -1 if the file does not exists, -2 in case of error.
+ */
+
+int includeIntegrity (char * fileName)
+{
+
+  int inodo_id;
+  int b_id;
+
+  inodo_id = namei(fileName);
+  //Error si el fichero no existe.
+  if (inodo_id < 0){
+    printf("(ERROR: El fichero %s no existe)\n", fileName);
+    return -1;
+  }
+
+  if (inodos_x[inodo_id].integridad == 1){
+    printf("ERROR: El fichero  %s ya tiene integridad\n",fileName );
+    return -2;
+  }
+
+  int auxPos= inodos_x[inodo_id].posicion;
+  inodos_x[inodo_id].posicion = 0;
+  //Añadir integridad:
+  for(int i = 0; i < FILE_BLOCKS; i++){
+    char buffer[2048]; //to write a block
+    char * pt_buffer = buffer;
+    uint32_t val;
+    //Fichero para cada bloque de fichero con datos
+    if (inodos[inodo_id].bloqueDirecto[i] != -1){
+      //Obtenemos el bloque de cada inodo
+      b_id = bmap(inodo_id, inodos_x[inodo_id].posicion + i*BLOCK_SIZE);
+      //Escribimos en el for
+      bread(DISK, sbloques[0].primerBloqueDatos + b_id, pt_buffer);
+      //Se aplica CRC32 y se obtiene la firma
+      val = CRC32((const unsigned char *)pt_buffer, 2048);
+      inodos[inodo_id].firmasIntegridad[i] = val;
+    }
+    //Si no hay bloques de datos el valor es -1
+    inodos[inodo_id].firmasIntegridad[i] = -1;
+    printf("FIRMA BLOQUE %d es : %x", i, val);
+  }
+
+  // Se ha incluido integridad en ese fichero
+  inodos_x[inodo_id].posicion = auxPos;
+  inodos_x[inodo_id].integridad =1;
+
+  return 0;
+}
+
+/*
+ * @brief	Opens an existing file and checks its integrity
+ * @return	The file descriptor if possible, -1 if file does not exist, -2 if the file is corrupted, -3 in case of error
+ */
+int openFileIntegrity(char *fileName)
+{
+
+  int inodo_id;
+  //Si el nombre del fichero es mayor que 32  error return -2;
+  if(strlen(fileName)>32)
+    return -1;
+
+  inodo_id = namei(fileName);
+  //Error si el fichero no existe.
+  if (inodo_id < 0){
+    printf("(ERROR: El fichero %s no existe)\n", fileName);
+    return -1;
+  }
+
+  //Si nunca se ha calculado la integridad del fichero
+  if(inodos_x[inodo_id].integridad == 0){
+    printf("ERROR: El fichero %s no tiene integridad\n", fileName);
+  return -3;
+  }
+
+  //si la integridad no es correcta
+  if (checkFile(fileName) == -1){
+  return -2;
+  }
+
+  //Si la integridad es correcta
+  inodos_x[inodo_id].posicion = 0;
+  inodos_x[inodo_id].abierto  = 1;
+  return inodo_id;
+
+}
+
+/*
+ * @brief	Closes a file and updates its integrity.
+ * @return	0 if success, -1 otherwise.
+ */
+ int closeFileIntegrity(int fileDescriptor)
+ {
+
+   int fd = fileDescriptor;
+   int b_id;
+   //Error si el descriptor es negativo o es mayor que el numero de inodos, q va de 0 a 47.
+   if (fileDescriptor < 0 || fileDescriptor > sbloques[0].numInodos - 1){
+     printf("Error: El fichero %d tiene un fd no valido\n", fd);
+     return -1;
+   }
+
+   if(inodos_x[fd].abierto  == 0){
+     printf("Error: El fichero %d ya no esta abierto\n", fd);
+     return -1;
+   }
+
+   //Si nunca se ha calculado la integridad del fichero n
+   if(inodos_x[fd].integridad == 0){
+     printf("ERROR: El fichero %d no tiene integridad\n", fd);
+   return -1;
+   }
+
+   //actualizar el crc.
+   int auxPos= inodos_x[fd].posicion;
+   inodos_x[fd].posicion = 0;
+   for(int i = 0; i < FILE_BLOCKS; i++){
+     char buffer[2048]; //to write a block
+     char * pt_buffer = buffer;
+     uint32_t val;
+     //Fichero para cada bloque de fichero con datos
+     if (inodos[fd].bloqueDirecto[i] != -1){
+       //Obtenemos el bloque de cada inodo
+       b_id = bmap(fd, inodos_x[fd].posicion + i*BLOCK_SIZE);
+       //Escribimos en el for
+       bread(DISK, sbloques[0].primerBloqueDatos + b_id, pt_buffer);
+       //Se aplica CRC32 y se obtiene la firma
+       val = CRC32((const unsigned char *)pt_buffer, 2048);
+       inodos[fd].firmasIntegridad[i] = val;
+     }
+     //Si no hay bloques de datos el valor es -1
+     inodos[fd].firmasIntegridad[i] = -1;
+     printf("FIRMA BLOQUE %d es : %x", i, val);
+   }
+
+   // Se ha incluido integridad en ese fichero
+   inodos_x[fd].posicion = auxPos;
+   inodos_x[fd].integridad =1;
+
+    return 0;
+    }
+
+/*
+ * @brief	Creates a symbolic link to an existing file in the file system.
+ * @return	0 if success, -1 if file does not exist, -2 in case of error.
+ */
 
 
 int createLn(char *fileName, char *linkName)
