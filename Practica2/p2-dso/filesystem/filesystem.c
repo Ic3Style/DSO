@@ -18,6 +18,8 @@
 #include "filesystem/metadata.h"   // Type and structure declaration of the file system
 #include "blocks_cache.c"
 
+// #include "crc.h"
+
 //Auxiliary functions
 
 int metadata_setDefault (void){
@@ -440,6 +442,7 @@ int readFile(int fileDescriptor, void *buffer, int numBytes)
     printf("Error en el read: El fichero %d no esta abierto\n", fileDescriptor);
     return -1;
   }
+  printf("Read 1: El puntero esta en %d\n", inodos_x[fileDescriptor].posicion);
   //Si el numero de Bytes a leer es mayor que el tamaño del fichero por leer
   if (inodos_x[fileDescriptor].posicion + numBytes > inodos[fileDescriptor].size) {
     printf("posicion : %d\n", inodos_x[fileDescriptor].posicion);
@@ -467,7 +470,7 @@ int readFile(int fileDescriptor, void *buffer, int numBytes)
 
   memmove(buffer, array_aux, numBytes);
   inodos_x[fileDescriptor].posicion += numBytes;
-
+  printf("Read 2: El puntero esta en %d\n", inodos_x[fileDescriptor].posicion);
 
   return numBytes;
 }
@@ -545,6 +548,50 @@ int writeFile(int fileDescriptor, void *buffer, int numBytes)
  */
 int lseekFile(int fileDescriptor, long offset, int whence)
 {
+  int fd = fileDescriptor;
+
+  if(fd<0 || fd > NUM_INODO){
+    printf("El fichero no esta en un rango valido\n");
+    return -1;
+  }
+
+  if(inodos_x[fd].abierto == 0){
+    printf("Error en el write: El fichero %d no esta abierto\n", fd);
+    return -1;
+  }
+
+  	printf("1: El puntero esta en %d\n", inodos_x[fd].posicion);
+
+  if(whence == FS_SEEK_BEGIN){
+      inodos_x[fd].posicion = 0;
+      	printf("2: El puntero esta en %d\n", inodos_x[fd].posicion);
+      return 0;
+  }
+  else if(whence == FS_SEEK_END){
+      inodos_x[fd].posicion = (inodos[fd].size - 7*sizeof(int)-32-5*sizeof(uint32_t)); //resta lo que ocupa la cabecera al tamanho totañ
+       printf("size : %d\n", inodos[fd].size);
+       printf("cabecera: %d\n", (int)(7*sizeof(int)+32+5*sizeof(uint32_t)));
+      	printf("2: El puntero esta en %d\n", inodos_x[fd].posicion);
+      return 0;
+  }
+  else if(whence == FS_SEEK_CUR){
+    if(inodos_x[fd].posicion + offset > inodos[fd].size - 7*sizeof(int)-32-5*sizeof(uint32_t)){
+      printf("El puntero se sale de limites por el final, se actualiza al limite final\n");
+      inodos_x[fd].posicion = (inodos[fd].size - 7*sizeof(int)-32-5*sizeof(uint32_t)); //resta lo que ocupa la cabecera al tamanho totañ
+      	printf("2: El puntero esta en %d\n", inodos_x[fd].posicion);
+      return 0;
+    }
+    if(inodos_x[fd].posicion + offset < 0){
+      printf("El puntero se sale de limites menor que 0, se actualiza al limite inicial\n");
+      inodos_x[fd].posicion = 0;
+      	printf("2: El puntero esta en %d\n", inodos_x[fd].posicion);
+      return 0;
+    }
+      inodos_x[fd].posicion = inodos_x[fd].posicion + offset;
+      	printf("2: El puntero esta en %d\n", inodos_x[fd].posicion);
+      return 0;
+  }
+
 	return -1;
 }
 
@@ -591,7 +638,7 @@ int lseekFile(int fileDescriptor, long offset, int whence)
 //       //Escribimos en el for
 //       bread(DISK, sbloques[0].primerBloqueDatos + b_id, pt_buffer);
 //       //Se aplica CRC32 y se obtiene la firma
-//       val = CRC32(pt_buffer, 2048);
+//       val = CRC32((const unsigned char *)pt_buffer, 2048);
 //       if(inodos[inodo_id].firmasIntegridad[i] != val){
 //         //Esta corrupto
 //         return -1;
@@ -605,11 +652,12 @@ int lseekFile(int fileDescriptor, long offset, int whence)
 //   return 0;
 // }
 
-/*
- * @brief	Include integrity on a file.
- * @return	0 if success, -1 if the file does not exists, -2 in case of error.
- */
 
+// /*
+//  * @brief	Include integrity on a file.
+//  * @return	0 if success, -1 if the file does not exists, -2 in case of error.
+//  */
+//
 // int includeIntegrity (char * fileName)
 // {
 //
@@ -642,7 +690,7 @@ int lseekFile(int fileDescriptor, long offset, int whence)
 //       //Escribimos en el for
 //       bread(DISK, sbloques[0].primerBloqueDatos + b_id, pt_buffer);
 //       //Se aplica CRC32 y se obtiene la firma
-//       val = CRC32(pt_buffer, 2048);
+//       val = CRC32((const unsigned char *)pt_buffer, 2048);
 //       inodos[inodo_id].firmasIntegridad[i] = val;
 //     }
 //     //Si no hay bloques de datos el valor es -1
@@ -656,11 +704,11 @@ int lseekFile(int fileDescriptor, long offset, int whence)
 //
 //   return 0;
 // }
-
-/*
- * @brief	Opens an existing file and checks its integrity
- * @return	The file descriptor if possible, -1 if file does not exist, -2 if the file is corrupted, -3 in case of error
- */
+//
+// /*
+//  * @brief	Opens an existing file and checks its integrity
+//  * @return	The file descriptor if possible, -1 if file does not exist, -2 if the file is corrupted, -3 in case of error
+//  */
 // int openFileIntegrity(char *fileName)
 // {
 //
@@ -693,79 +741,88 @@ int lseekFile(int fileDescriptor, long offset, int whence)
 //   return inodo_id;
 //
 // }
+//
+// /*
+//  * @brief	Closes a file and updates its integrity.
+//  * @return	0 if success, -1 otherwise.
+//  */
+//  int closeFileIntegrity(int fileDescriptor)
+//  {
+//
+//    int fd = fileDescriptor;
+//    int b_id;
+//    //Error si el descriptor es negativo o es mayor que el numero de inodos, q va de 0 a 47.
+//    if (fileDescriptor < 0 || fileDescriptor > sbloques[0].numInodos - 1){
+//      printf("Error: El fichero %d tiene un fd no valido\n", fd);
+//      return -1;
+//    }
+//
+//    if(inodos_x[fd].abierto  == 0){
+//      printf("Error: El fichero %d ya no esta abierto\n", fd);
+//      return -1;
+//    }
+//
+//    //Si nunca se ha calculado la integridad del fichero n
+//    if(inodos_x[fd].integridad == 0){
+//      printf("ERROR: El fichero %d no tiene integridad\n", fd);
+//    return -1;
+//    }
+//
+//    //actualizar el crc.
+//    int auxPos= inodos_x[fd].posicion;
+//    inodos_x[fd].posicion = 0;
+//    for(int i = 0; i < FILE_BLOCKS; i++){
+//      char buffer[2048]; //to write a block
+//      char * pt_buffer = buffer;
+//      uint32_t val;
+//      //Fichero para cada bloque de fichero con datos
+//      if (inodos[fd].bloqueDirecto[i] != -1){
+//        //Obtenemos el bloque de cada inodo
+//        b_id = bmap(fd, inodos_x[fd].posicion + i*BLOCK_SIZE);
+//        //Escribimos en el for
+//        bread(DISK, sbloques[0].primerBloqueDatos + b_id, pt_buffer);
+//        //Se aplica CRC32 y se obtiene la firma
+//        val = CRC32((const unsigned char *)pt_buffer, 2048);
+//        inodos[fd].firmasIntegridad[i] = val;
+//      }
+//      //Si no hay bloques de datos el valor es -1
+//      inodos[fd].firmasIntegridad[i] = -1;
+//      printf("FIRMA BLOQUE %d es : %x", i, val);
+//    }
+//
+//    // Se ha incluido integridad en ese fichero
+//    inodos_x[fd].posicion = auxPos;
+//    inodos_x[fd].integridad =1;
+//
+//     return 0;
+//     }
+//
+// /*
+//  * @brief	Creates a symbolic link to an existing file in the file system.
+//  * @return	0 if success, -1 if file does not exist, -2 in case of error.
+//  */
 
-/*
- * @brief	Closes a file and updates its integrity.
- * @return	0 if success, -1 otherwise.
- */
- // int closeFileIntegrity(int fileDescriptor)
- // {
- //
- //   int fd = fileDescriptor;
- //   int b_id;
- //   //Error si el descriptor es negativo o es mayor que el numero de inodos, q va de 0 a 47.
- //   if (fileDescriptor < 0 || fileDescriptor > sbloques[0].numInodos - 1){
- //     printf("Error: El fichero %d tiene un fd no valido\n", fd);
- //     return -1;
- //   }
- //
- //   if(inodos_x[fd].abierto  == 0){
- //     printf("Error: El fichero %d ya no esta abierto\n", fd);
- //     return -1;
- //   }
- //
- //   //Si nunca se ha calculado la integridad del fichero n
- //   if(inodos_x[fd].integridad == 0){
- //     printf("ERROR: El fichero %d no tiene integridad\n", fd);
- //   return -1;
- //   }
- //
- //   //actualizar el crc.
- //   int auxPos= inodos_x[fd].posicion;
- //   inodos_x[fd].posicion = 0;
- //   for(int i = 0; i < FILE_BLOCKS; i++){
- //     char buffer[2048]; //to write a block
- //     char * pt_buffer = buffer;
- //     uint32_t val;
- //     //Fichero para cada bloque de fichero con datos
- //     if (inodos[fd].bloqueDirecto[i] != -1){
- //       //Obtenemos el bloque de cada inodo
- //       b_id = bmap(fd, inodos_x[fd].posicion + i*BLOCK_SIZE);
- //       //Escribimos en el for
- //       bread(DISK, sbloques[0].primerBloqueDatos + b_id, pt_buffer);
- //       //Se aplica CRC32 y se obtiene la firma
- //       val = CRC32(pt_buffer, 2048);
- //       inodos[fd].firmasIntegridad[i] = val;
- //     }
- //     //Si no hay bloques de datos el valor es -1
- //     inodos[fd].firmasIntegridad[i] = -1;
- //     printf("FIRMA BLOQUE %d es : %x", i, val);
- //   }
- //
- //   // Se ha incluido integridad en ese fichero
- //   inodos_x[fd].posicion = auxPos;
- //   inodos_x[fd].integridad =1;
- //
- //    return 0;
- //    }
 
-/*
- * @brief	Creates a symbolic link to an existing file in the file system.
- * @return	0 if success, -1 if file does not exist, -2 in case of error.
- */
 int createLn(char *fileName, char *linkName)
 {
-    int inodo_id;
-    inodo_id = namei(fileName);
-    //Error si el fichero no existe.
-    if (inodo_id < 0){
-      printf("(ERROR: El fichero %s no existe)\n", fileName);
-      return -1;
+    int inodo_id = ialloc();
+    if (inodo_id < 0) { //ERROR. No hay i-nodos libres
+      return -2;
     }
+
+    int inodo_name = namei(fileName);
+    if (inodo_name < 0){      //ERROR. El fichero no existe
+      printf("(ERROR: El fichero %s no existe)\n", fileName);
+      return -2;
+    }
+
+    inodos[inodo_id].tipo = T_ENLACE_S ;
+
 
 
     return -1;
 }
+
 
 /*
  * @brief 	Deletes an existing symbolic link
