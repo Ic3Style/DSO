@@ -15,7 +15,8 @@
 
 #include "filesystem/crc.h"	// Headers for the CRC functionality
 
-#include "../zlib/zlib.h"			// Auxiliary library for CRC32
+//#include "../zlib/zlib.h"			// Auxiliary library for CRC32
+#include "zlib/zlib.h"
 
 //#include "zlib.h"
 
