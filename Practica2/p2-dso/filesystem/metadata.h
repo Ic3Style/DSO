@@ -61,6 +61,7 @@ typedef struct {
 #define T_ENLACE_S   2
 
 
+
 //INODOS Y BLOQUES
 #define NUM_INODO 48
 #define NUM_DATA_BLOCK 240

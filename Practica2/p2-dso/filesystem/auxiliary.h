@@ -16,7 +16,7 @@ int metadata_writeToDisk (void);
 
 int metada_readFromDisk(void);
 
-int namei ( char *fname );
+int namei ( char *fname, int tipo);
 
 int ialloc (void);
 
