@@ -377,11 +377,11 @@ int openFile(char *fileName)
     return -1;
   }
 
-  
+  /*
   if (inodos_x[inodo_id].integridad == 1){
     //Si tiene integridad debe abrirse con integridad
     return -2;
-  }
+  }*/
 
 
   inodos_x[inodo_id].posicion = 0;
