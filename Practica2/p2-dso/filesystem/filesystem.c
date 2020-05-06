@@ -137,7 +137,7 @@ int ialloc (void){
             // valores por defecto en el i-nodo
             memset(&(inodos[i]),0, sizeof(TipoInodoDisco));
             // devolver identificador de i-nodo
-            bitmap_print(i_map, NUM_INODO);
+
             return i;
         }
   } //Error no hay inodos libres
@@ -207,25 +207,18 @@ int mkFS(long deviceSize)
 {
   if(deviceSize > 614400) //tamanho maximo de disco
     return -1;
-//BUFFER PARA CADA bloque
-  char b[BLOCK_SIZE];
 
-//Inicializa todos los parametros del superbloque, mapas ....
-  metadata_setDefault();
-	sbloques[0].tamDispositivo = deviceSize; //NO ES SEGURO
-//Escribe todo al disco
-  metadata_writeToDisk();
+  char b[BLOCK_SIZE]; //BUFFER PARA CADA bloque
 
-//Escribir los bloques de datos a 0. Valores iniciales.
-  memset(b, 0, BLOCK_SIZE);
+  metadata_setDefault(); //Inicializa todos los parametros del superbloque, mapas ....
+	sbloques[0].tamDispositivo = deviceSize; //Cambia el tamanho del dispositivo
+  metadata_writeToDisk(); //Escribe todo al disco
 
-//Escribir cada bloque de datos al disco.
-  for (int i=0; i < sbloques[0].numBloquesDatos; i++) {
-    //Escribe en disco en cada bloque de datos lo que hay en el buffer.
-    bwrite(DISK, sbloques[0].primerBloqueDatos + i, b);
+  memset(b, 0, BLOCK_SIZE); //Escribir los bloques de datos a 0. Valores iniciales.
+
+  for (int i=0; i < sbloques[0].numBloquesDatos; i++) { //Escribir cada bloque de datos al disco.
+    bwrite(DISK, sbloques[0].primerBloqueDatos + i, b); //Escribe en disco en cada bloque de datos lo que hay en el buffer.
   }
-
-  // PONER EL CASO DE ERROR Y DEVOLVER -1.
 	return 0;
 }
 
@@ -240,8 +233,7 @@ int mountFS(void)
       return -1 ;
   }
 
-  // Leer los metadatos del sistema de ficheros de disco a memoria
-  metadata_readFromDisk() ;
+  metadata_readFromDisk() ; // Leer los metadatos del sistema de ficheros de disco a memoria
 
   // Montar
   is_mount = 1 ; // 0: falso, 1: verdadero
@@ -308,19 +300,17 @@ int createFile(char *fileName)
   inodos[inodo_id].tipo = T_FICHERO ; //1
   strcpy(inodos[inodo_id].nombre, fileName);
   // printf("inodo nomnbre %s", inodos[inodo_id].nombre );
-  //CUIDADO
-  inodos[inodo_id].bloqueDirecto[0] = block_id ;
+
+  inodos[inodo_id].bloqueDirecto[0] = block_id ; //se asigna solo el primero bloque de datos
   inodos[inodo_id].bloqueDirecto[1] = -1;
   inodos[inodo_id].bloqueDirecto[2] = -1;
   inodos[inodo_id].bloqueDirecto[3] = -1;
   inodos[inodo_id].bloqueDirecto[4] = -1;
 
-  inodos[inodo_id].size = 7*sizeof(int)+32+5*sizeof(uint32_t); //tamanho inicial del fichero
-  //Consideramos que lo creamos pero que no se abre.
-  inodos_x[inodo_id].posicion    = 0;
-  inodos_x[inodo_id].abierto     = 0;
+  inodos[inodo_id].size = 7*sizeof(int)+32+5*sizeof(uint32_t); //el size inicial del fichero es el inodo
 
-  printf("el size del fichero creado es: %d\n", inodos[inodo_id].size);
+  inodos_x[inodo_id].posicion = 0; //Consideramos que lo creamos pero que no se abre.
+  inodos_x[inodo_id].abierto = 0;
 
   return 0;
 
@@ -334,17 +324,15 @@ int removeFile(char *fileName)
 {
   int inodo_id;
 
-  //Si el nombre del fichero es mayor que 32  error return -2;
-  if(strlen(fileName)>32)
+  if(strlen(fileName)>32)   //Si el nombre del fichero es mayor que 32  error return -2;
     return -2;
 
   inodo_id = namei(fileName, T_FICHERO);
-  //Error si el fichero no existe.
-  if (inodo_id < 0){
+
+  if (inodo_id < 0){   //Error si el fichero no existe.
     return -1;
   }
 
-  //CUIDADO
   // HACER FREE a los bloques.
   for(int i=0; i<5; i++){ //liberamos los bloques asociados
     if(inodos[inodo_id].bloqueDirecto[i]>-1)
@@ -353,18 +341,17 @@ int removeFile(char *fileName)
 
   memset(&(inodos[inodo_id]), 0, sizeof(TipoInodoDisco));
   ifree(inodo_id) ;
-  //success
-	return 0;
+
+	return 0;   //success
 }
 
 /*
  * @brief	Opens an existing file.
  * @return	The file descriptor if possible, -1 if file does not exist, -2 in case of error..
- */
+*/
 
 int openFile(char *fileName)
 {
-  //Si el fichero no existe error
   int inodo_id;
 
   //Si el nombre del fichero es mayor que 32  error return -2;
@@ -372,17 +359,16 @@ int openFile(char *fileName)
     return -2;
 
   inodo_id = namei(fileName, T_FICHERO);
-  //Error si el fichero no existe.
-  if (inodo_id < 0){
+
+  if (inodo_id < 0){ //Error si el fichero no existe.
     return -1;
   }
 
-  /*
+
   if (inodos_x[inodo_id].integridad == 1){
     //Si tiene integridad debe abrirse con integridad
     return -2;
-  }*/
-
+  }
 
   inodos_x[inodo_id].posicion = 0;
   inodos_x[inodo_id].abierto  = 1;
@@ -509,12 +495,12 @@ int writeFile(int fileDescriptor, void *buffer, int numBytes)
   int size = bytesLeft; //bytes para copiar
 
   if(inodos_x[fd].abierto == 0){
-    printf("Error en el write: El fichero %d no esta abierto\n", fd);
+    // printf("Error en el write: El fichero %d no esta abierto\n", fd);
     return -1;
   }
 
   if(inodos_x[fd].posicion >=  MAX_FILE_SIZE){
-    printf("Error en write: El puntero de posicion ha llegado al final del archivo\n");
+    // printf("Error en write: El puntero de posicion ha llegado al final del archivo\n");
     return 0;
   }
 
@@ -589,37 +575,37 @@ int lseekFile(int fileDescriptor, long offset, int whence)
   int fd = fileDescriptor;
 
   if(fd<0 || fd > NUM_INODO){
-    printf("El fichero no esta en un rango valido\n");
+    // printf("El fichero no esta en un rango valido\n");
     return -1;
   }
 
   if(inodos_x[fd].abierto == 0){
-    printf("Error en el write: El fichero %d no esta abierto\n", fd);
+    // printf("Error en el write: El fichero %d no esta abierto\n", fd);
     return -1;
   }
 
   	printf("1: El puntero esta en %d\n", inodos_x[fd].posicion);
 
-  if(whence == FS_SEEK_BEGIN){
+  if(whence == FS_SEEK_BEGIN){ //puntero al principio
       inodos_x[fd].posicion = 0;
       	printf("2: El puntero esta en %d\n", inodos_x[fd].posicion);
       return 0;
   }
-  else if(whence == FS_SEEK_END){
+  else if(whence == FS_SEEK_END){ //puntero al final
       inodos_x[fd].posicion = (inodos[fd].size - 7*sizeof(int)-32-5*sizeof(uint32_t)); //resta lo que ocupa la cabecera al tamanho totañ
        printf("size : %d\n", inodos[fd].size);
        printf("cabecera: %d\n", (int)(7*sizeof(int)+32+5*sizeof(uint32_t)));
       	printf("2: El puntero esta en %d\n", inodos_x[fd].posicion);
       return 0;
   }
-  else if(whence == FS_SEEK_CUR){
-    if(inodos_x[fd].posicion + offset > inodos[fd].size - 7*sizeof(int)-32-5*sizeof(uint32_t)){
+  else if(whence == FS_SEEK_CUR){ //puntero current + offset
+    if(inodos_x[fd].posicion + offset > inodos[fd].size - 7*sizeof(int)-32-5*sizeof(uint32_t)){ //si se intetna mover el puntero mas del limite
       printf("El puntero se sale de limites por el final, se actualiza al limite final\n");
       inodos_x[fd].posicion = (inodos[fd].size - 7*sizeof(int)-32-5*sizeof(uint32_t)); //resta lo que ocupa la cabecera al tamanho totañ
       	printf("2: El puntero esta en %d\n", inodos_x[fd].posicion);
       return 0;
     }
-    if(inodos_x[fd].posicion + offset < 0){
+    if(inodos_x[fd].posicion + offset < 0){ //si se intenta poner puntero negativo
       printf("El puntero se sale de limites menor que 0, se actualiza al limite inicial\n");
       inodos_x[fd].posicion = 0;
       	printf("2: El puntero esta en %d\n", inodos_x[fd].posicion);
@@ -648,9 +634,10 @@ int checkFile (char * fileName)
     return -2;
   }
     inodo_id = namei(fileName, T_FICHERO);
+
       //Si el fichero esta abierto error
     if(inodos_x[inodo_id].abierto == 1){
-      printf("El fichero %s está abierto\n", fileName );
+      //printf("El fichero %s está abierto\n", fileName );
       return -2;
   }
 
@@ -681,10 +668,8 @@ int checkFile (char * fileName)
         return -1;
       }
     }
-    /*Si no hay bloques de datos el valor es -1
-    inodos[inodo_id].firmasIntegridad[i] = -1;
-    printf("FIRMA BLOQUE %d es : %x", i, val);*/
   }
+  //Se ha decido dejar la posicon del puntero en el lugar donde estaba antes de hacer checkFile.
   inodos_x[inodo_id].posicion = auxPos;
   return 0;
 }
@@ -734,10 +719,10 @@ int includeIntegrity (char * fileName)
     //Si no hay bloques de datos el valor es -1
     inodos[inodo_id].firmasIntegridad[i] = -1;
   }
-    printf("FIRMA BLOQUE %d es : %x \n", i, inodos[inodo_id].firmasIntegridad[i]);
   }
 
   // Se ha incluido integridad en ese fichero
+  //Se restaura el puntero de posicion
   inodos_x[inodo_id].posicion = auxPos;
   inodos_x[inodo_id].integridad =1;
 
@@ -768,7 +753,6 @@ int openFileIntegrity(char *fileName)
     printf("ERROR: El fichero %s no tiene integridad\n", fileName);
   return -3;
   }
-
 
   //si la integridad no es correcta
   if (checkFile(fileName) == -1){
@@ -828,12 +812,11 @@ int openFileIntegrity(char *fileName)
      //Si no hay bloques de datos el valor es -1
      inodos[fd].firmasIntegridad[i] = -1;
    }
-     printf("FIRMA BLOQUE %d es : %x", i, val);
-   }
+    }
 
    // Se ha incluido integridad en ese fichero
+   //Se restuara el puntero de posicon
    inodos_x[fd].posicion = auxPos;
-   inodos_x[fd].integridad =1;
 
     return 0;
     }
@@ -868,7 +851,7 @@ int createLn(char *fileName, char *linkName)
     inodos_x[inodo_id].abierto  = 1;
 
 
-    return -1;
+    return 0;
 }
 
 
@@ -880,7 +863,7 @@ int removeLn(char *linkName){
 
   int inodo_id = namei(linkName, T_ENLACE_S);
   if (inodo_id < 0){      //ERROR. El fichero no existe
-    printf("(ERROR: El enlace simbolico %s no existe)\n", linkName);
+    //printf("(ERROR: El enlace simbolico %s no existe)\n", linkName);
     return -1;
   }
 
