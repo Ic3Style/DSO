@@ -202,6 +202,7 @@ int bfree ( int block_id )
  * @brief 	Generates the proper file system structure in a storage device, as designed by the student.
  * @return 	0 if success, -1 otherwise.
  */
+
 int mkFS(long deviceSize)
 {
   if(deviceSize > 614400) //tamanho maximo de disco
