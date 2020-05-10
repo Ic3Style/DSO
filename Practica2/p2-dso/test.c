@@ -389,7 +389,6 @@ int main()
 	}
 	fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "24: TEST_INTEGRITY checkFile after write ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
 
-
 	//////// TEST 25
 
 	//probamos a eliminar el archivo con integridad
@@ -402,16 +401,98 @@ int main()
 	fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "25: TEST_INTEGRITY removeFile ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
 
 
+	///////////////////////////////////////////////////////////////
+	////////////// TESTS CON ENLACES SIMBOLICOS ///////////////////
+	///////////////////////////////////////////////////////////////
+
+	createFile("/test_zelda.txt"); //se crea un fichero nuevo
+	fd = openFile("/test_zelda.txt");
+
 	//////// TEST 26
+
+	// crear un enlace simbolico a un fichero existente
+	ret = createLn("/test_zelda.txt", "/enlace1");
+	if (ret < 0)
+	{
+		fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "26: TEST_LINK createLn exist ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+		return -1;
+	}
+	fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "26: TEST_LINK createLn exist ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+
+
+	//////// TEST 27
+
+	// crear un enlace simbolico a un fichero que no existe
+	ret = createLn("/no_existe.txt", "/enl");
+	if (ret != -1)
+	{
+		fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "27: TEST_LINK createLn not exist ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+		return -1;
+	}
+	fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "27: TEST_LINK createLn not exist ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+
+
+	//////// TEST 28
+
+	// crear un enlace simbolico a otro enlace
+	ret = createLn("/enlace1", "/enlace2");
+	if (ret < 0)
+	{
+		fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "28: TEST_LINK createLn to a link ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+		return -1;
+	}
+	fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "28: TEST_LINK createLn to a link ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+
+
+	//////// TEST 29
+
+	// nombre de fichero largo
+	ret = createLn("/111111111111111111111111111111111111111111", "/111111111111111111111111111111111111111111");
+	if (ret == 0)
+	{
+		fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "29: TEST_LINK createLn long name ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+		return -1;
+	}
+	fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "29: TEST_LINK createLn long name ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+
+
+	//////// TEST 30
+
+	// se prueba a escribir usando el enlace simbolico
+	fd = openFile("/enlace2");
+	byte_write = writeFile(fd, "hola mundo", 7);
+	if (byte_write != 7)
+	{
+		fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "30: TEST_LINK writeFile through a link ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+		return -1;
+	}
+	fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "30: TEST_LINK writeFile through a link ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+
+
+	//////// TEST 31
+
+	// se eliminan los enlaces simbolicos
+	int link2 = removeLn("/enlace2");
+	int link1 = removeLn("/enlace1");
+	closeFile(fd);
+	if (link1 != 0 && link2 != 0 )
+	{
+		fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "31: TEST_LINK remove a link ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+		return -1;
+	}
+	fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "31: TEST_LINK remove a link ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+
+
+	//////// TEST 32
 
 	//se prueba a desmontar el sistema de ficheros
 	ret = unmountFS();
 	if (ret != 0)
 	{
-		fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "26: TEST unmountFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+		fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "32: TEST unmountFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
 		return -1;
 	}
-	fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "26: TEST unmountFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+	fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "32: TEST unmountFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
 
 	//////// FIN TESTS
 

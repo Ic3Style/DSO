@@ -311,6 +311,7 @@ int createFile(char *fileName)
 
   inodos_x[inodo_id].posicion = 0; //Consideramos que lo creamos pero que no se abre.
   inodos_x[inodo_id].abierto = 0;
+  inodos_x[inodo_id].integridad = 0;
 
   return 0;
 
@@ -400,7 +401,6 @@ int closeFile(int fileDescriptor)
   }
 
   //Actualizar los metadatos del fichero:
-
   inodos_x[fileDescriptor].posicion = 0;
   inodos_x[fileDescriptor].abierto  = 0;
 	return 0;
@@ -486,8 +486,8 @@ int readFile(int fileDescriptor, void *buffer, int numBytes)
  */
 int writeFile(int fileDescriptor, void *buffer, int numBytes)
 {
-  char b[BLOCK_SIZE] ;
-  int b_id ;
+  char b[BLOCK_SIZE] ; //buffer auxiliar
+  int b_id ; //numero de bloque
   int b_aux; //para asignar nuevos bloques
   int b_log_aux; //para calcular la asignacion de nuevos bloques
   int bytesLeft = numBytes; //bytes que faltan por escribir
@@ -594,7 +594,7 @@ int lseekFile(int fileDescriptor, long offset, int whence)
       return 0;
   }
   else if(whence == FS_SEEK_END){ //puntero al final
-      inodos_x[fd].posicion = (inodos[fd].size - 7*sizeof(int)-32-5*sizeof(uint32_t)); //resta lo que ocupa la cabecera al tamanho totañ
+      inodos_x[fd].posicion = (inodos[fd].size - 7*sizeof(int)-32-5*sizeof(uint32_t)); //resta lo que ocupa la cabecera al tamanho total
        // printf("size : %d\n", inodos[fd].size);
        // printf("cabecera: %d\n", (int)(7*sizeof(int)+32+5*sizeof(uint32_t)));
       	// printf("2: El puntero esta en %d\n", inodos_x[fd].posicion);
@@ -740,7 +740,7 @@ int openFileIntegrity(char *fileName)
 {
 
   int inodo_id;
-  //Si el nombre del fichero es mayor que 32  error return -2;
+  //Si el nombre del fichero es mayor que 32  error;
   if(strlen(fileName)>32)
     return -1;
 
@@ -835,6 +835,11 @@ int openFileIntegrity(char *fileName)
 
 int createLn(char *fileName, char *linkName)
 {
+    if(strlen(fileName) > 32 && strlen(linkName) > 32){
+      // printf("El nombre del fichero es mayor que el permitido");
+      return -2;
+    }
+
     int inodo_id = ialloc();
     if (inodo_id < 0) { //ERROR. No hay i-nodos libres
       return -2;
@@ -854,6 +859,7 @@ int createLn(char *fileName, char *linkName)
     inodos[inodo_id].bloqueDirecto[2] = -1;
     inodos[inodo_id].bloqueDirecto[3] = -1;
     inodos[inodo_id].bloqueDirecto[4] = -1;
+    inodos_x[inodo_id].integridad = 0;
     inodos_x[inodo_id].abierto  = 1;
 
 
