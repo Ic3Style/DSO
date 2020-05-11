@@ -204,19 +204,30 @@ int main()
 	lseekFile( fd, offset, FS_SEEK_BEGIN); //movemos el puntero al inicio otra vez para leer
 
 	memset(buffer, 0, 1000); //se resetea el buffer
-	size = 7; //va a leer los 7 bytes del buffer
+	size = 3; //va a leer los 3 primeros bytes del buffer
 	byte_read = readFile(fd, buffer, size);
-	resultado_esperado = "SSla mu";
+	resultado_esperado = "SSl";
 
 	//printf("block read: \n<%s>\n", buffer); //DESCOMENTAR PARA VER EL BLOQUE LEIDO
 
-	if (byte_read != 7 || strncmp(buffer, resultado_esperado, 7) != 0) //se comprueba con el resultado esperado
+	if (byte_read != 3 || strncmp(buffer, resultado_esperado, 7) != 0) //se comprueba con el resultado esperado
 	{
-		fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "11: TEST writeFile overwrite ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+		fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "11a: TEST writeFile overwrite & multiple read ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
 		return -1;
 	}
-	fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "11: TEST writeFile overwrite ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+	fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "11a: TEST writeFile overwrite & multiple read ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
 
+	size = 4; //va a leer los 4 siguientes bytes del buffer
+	byte_read = readFile(fd, buffer, size);
+	resultado_esperado = "a mu";
+	// printf("block read: \n<%s>\n", buffer); //DESCOMENTAR PARA VER EL BLOQUE LEIDO
+
+	if (byte_read != 4 || strncmp(buffer, resultado_esperado, 7) != 0) //se comprueba con el resultado esperado
+	{
+		fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "11b: TEST writeFile overwrite & multiple read ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+		return -1;
+	}
+	fprintf(stdout, "%s%s%s%s%s", ANSI_COLOR_BLUE, "11b: TEST writeFile overwrite & multiple read ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
 
 	///////// TEST 12
 

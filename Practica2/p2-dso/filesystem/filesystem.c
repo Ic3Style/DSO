@@ -407,6 +407,7 @@ int closeFile(int fileDescriptor)
 
 }
 
+
 int bmap ( int inodo_id, int offset )
 {
     int bloqueLogico;
