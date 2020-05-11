@@ -383,7 +383,6 @@ int openFile(char *fileName)
  */
 int closeFile(int fileDescriptor)
 {
-
   //Error si el descriptor es negativo o es mayor que el numero de inodos, q va de 0 a 47.
   if (fileDescriptor < 0 || fileDescriptor > sbloques[0].numInodos - 1){
     // printf("Error: El fichero %d tiene un fd no valido\n", fileDescriptor);
