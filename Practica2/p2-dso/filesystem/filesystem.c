@@ -9,6 +9,7 @@
  * @date	Last revision 01/04/2020
  *
  */
+
  #include <stdlib.h>
  #include <stdio.h>
  #include <string.h>
@@ -442,14 +443,10 @@ int readFile(int fileDescriptor, void *buffer, int numBytes)
   if(inodos_x[fileDescriptor].abierto == 0){
     // printf("Error en el read: El fichero %d no esta abierto\n", fileDescriptor);
     return -1;
-  }
 
-  // printf("Read 1: El puntero esta en %d\n", inodos_x[fileDescriptor].posicion);
   //Si el numero de Bytes a leer es mayor que el tamaño del fichero por leer
   if (inodos_x[fileDescriptor].posicion + numBytes > inodos[fileDescriptor].size-7*sizeof(int)-32-5*sizeof(uint32_t)) {
-    // printf("posicion : %d\n", inodos_x[fileDescriptor].posicion);
-    // printf("numBytes %d\n", numBytes);
-    // printf("size: %d\n", inodos[fileDescriptor].size);
+
       numBytes = (inodos[fileDescriptor].size-7*sizeof(int)-32-5*sizeof(uint32_t)) - inodos_x[fileDescriptor].posicion;
   }
 
@@ -474,7 +471,6 @@ int readFile(int fileDescriptor, void *buffer, int numBytes)
 
   memmove(buffer, array_aux+(inodos_x[fileDescriptor].posicion%BLOCK_SIZE), numBytes);
   inodos_x[fileDescriptor].posicion += numBytes;
-  // printf("Read 2: El puntero esta en %d\n", inodos_x[fileDescriptor].posicion);
 
   return numBytes;
 }
@@ -518,9 +514,7 @@ int writeFile(int fileDescriptor, void *buffer, int numBytes)
 
   while(bytesLeft > 0){
   size = bytesLeft;
-  // printf("bytesLeft por copiar: %d\n", bytesLeft);
   b_id = bmap(fd, inodos_x[fd].posicion);
-  // printf("b_id: %d\n", b_id);
   if(b_id == -2){
     // printf("Error en write: El archivo esta lleno\n");
     return bytesWr;
@@ -533,35 +527,21 @@ int writeFile(int fileDescriptor, void *buffer, int numBytes)
     }
 
     b_log_aux = inodos_x[fd].posicion/BLOCK_SIZE;
-    // printf("b_log_aux: %d\n", b_log_aux);
     inodos[fd].bloqueDirecto[b_log_aux] = b_aux; //se le asigna el bloque nuevo
-    // printf("b_aux: %d\n", b_aux);
     b_id = b_aux;
   }
 
   bread(DISK, sbloques[0].primerBloqueDatos+b_id, b); //lee de disco el bloque de datos
-    // printf("posicion %d+ size %d\n", inodos_x[fd].posicion, size);
   if ((inodos_x[fd].posicion%BLOCK_SIZE)+size > BLOCK_SIZE) {
       size = BLOCK_SIZE - (inodos_x[fd].posicion%BLOCK_SIZE);
-    // printf("size= %d\n", BLOCK_SIZE - (inodos_x[fd].posicion%BLOCK_SIZE));
   }
-  // printf("ANTES DE MEMOVE\n");
   memmove(b+(inodos_x[fd].posicion%BLOCK_SIZE), buffer+i*BLOCK_SIZE, size); //lo copia del buffer al otro buffer auxiliar
-  // printf("ANTES DE BWRITE\n");
   bwrite(DISK, sbloques[0].primerBloqueDatos+b_id, b); //lo escribe a disco
-  // printf("despues DE BWRITE\n");
   inodos_x[fd].posicion += size; //se actualiza en cada loop
-  // printf("despues DE pos\n");
   inodos[fd].size += size;
-  // printf("despues DE size\n");
   bytesLeft -= size; //se actualizan los bytes que quedan por escribir
-  // printf("despues DE bytesleft\n");
   bytesWr += size;
-  // printf("bytesWr %d\n", bytesWr);
-  // for(int i=0; i<5; i++){
-  //   printf("bloqueDir[%d] = %d\n", i, inodos[fd].bloqueDirecto[i]);
-  // }
-  // printf("despues DE bytesWR\n");
+
   }
   // printf("hace el return\n");
   return bytesWr;
@@ -586,35 +566,28 @@ int lseekFile(int fileDescriptor, long offset, int whence)
     return -1;
   }
 
-  	// printf("1: El puntero esta en %d\n", inodos_x[fd].posicion);
 
   if(whence == FS_SEEK_BEGIN){ //puntero al principio
       inodos_x[fd].posicion = 0;
-      	// printf("2: El puntero esta en %d\n", inodos_x[fd].posicion);
       return 0;
   }
   else if(whence == FS_SEEK_END){ //puntero al final
       inodos_x[fd].posicion = (inodos[fd].size - 7*sizeof(int)-32-5*sizeof(uint32_t)); //resta lo que ocupa la cabecera al tamanho total
-       // printf("size : %d\n", inodos[fd].size);
-       // printf("cabecera: %d\n", (int)(7*sizeof(int)+32+5*sizeof(uint32_t)));
-      	// printf("2: El puntero esta en %d\n", inodos_x[fd].posicion);
+
       return 0;
   }
   else if(whence == FS_SEEK_CUR){ //puntero current + offset
     if(inodos_x[fd].posicion + offset > inodos[fd].size - 7*sizeof(int)-32-5*sizeof(uint32_t)){ //si se intetna mover el puntero mas del limite
       // printf("El puntero se sale de limites por el final, se actualiza al limite final\n");
       inodos_x[fd].posicion = (inodos[fd].size - 7*sizeof(int)-32-5*sizeof(uint32_t)); //resta lo que ocupa la cabecera al tamanho totañ
-      	// printf("2: El puntero esta en %d\n", inodos_x[fd].posicion);
       return 0;
     }
     if(inodos_x[fd].posicion + offset < 0){ //si se intenta poner puntero negativo
       // printf("El puntero se sale de limites menor que 0, se actualiza al limite inicial\n");
       inodos_x[fd].posicion = 0;
-      	// printf("2: El puntero esta en %d\n", inodos_x[fd].posicion);
       return 0;
     }
       inodos_x[fd].posicion = inodos_x[fd].posicion + offset;
-      	// printf("2: El puntero esta en %d\n", inodos_x[fd].posicion);
       return 0;
   }
 	return -1;
