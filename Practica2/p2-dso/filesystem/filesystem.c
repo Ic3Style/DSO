@@ -198,6 +198,26 @@ int bfree ( int block_id )
     return -1;
 }
 
+void sblock_print(void) {
+
+  printf("%d", sbloques[0].numMagico);
+  printf("%d", sbloques[0].numInodos);
+  printf("%d", sbloques[0].numBloquesMapaInodos);
+  printf("%d", sbloques[0].numBloquesMapaDatos);
+  printf("%d", sbloques[0].primerInodo);
+  printf("%d", sbloques[0].numBloquesDatos);
+  printf("%d", sbloques[0].primerBloqueDatos);
+  printf("%d", sbloques[0].tamDispositivo);
+  printf("\n");
+}
+
+void bitmap_print(char *bitmap_, int size) {
+
+  for (int i = 0; i < size; i++){
+    printf("%d", bitmap_getbit(bitmap_, i));
+  }
+  printf("\n");
+}
 
 /*
  * @brief 	Generates the proper file system structure in a storage device, as designed by the student.
@@ -443,7 +463,7 @@ int readFile(int fileDescriptor, void *buffer, int numBytes)
   if(inodos_x[fileDescriptor].abierto == 0){
     // printf("Error en el read: El fichero %d no esta abierto\n", fileDescriptor);
     return -1;
-
+  }
   //Si el numero de Bytes a leer es mayor que el tamaño del fichero por leer
   if (inodos_x[fileDescriptor].posicion + numBytes > inodos[fileDescriptor].size-7*sizeof(int)-32-5*sizeof(uint32_t)) {
 

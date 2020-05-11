@@ -25,3 +25,7 @@ int alloc (void);
 int ifree( int inodo_id);
 
 int bfree( int block_id);
+
+void sblock_print(void);
+
+void bitmap_print(char *bitmap_, int size);

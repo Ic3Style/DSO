@@ -18,13 +18,6 @@ static inline void bitmap_setbit(char *bitmap_, int i_, int val_) {
     bitmap_[(i_ >> 3)] &= ~(1 << (i_ & 0x07));
 }
 
-static inline void bitmap_print(char *bitmap_, int size) {
-
-  for (int i = 0; i < size; i++){
-    printf("%d", bitmap_getbit(bitmap_, i));
-  }
-  printf("\n");
-}
 
 #define BLOCK_SIZE 2048 //Size of block in FS.
 #define DISK "disk.dat"
@@ -86,17 +79,3 @@ struct {
 } inodos_x [NUM_INODO] ;
 
 int is_mount = 0; // global para decir si esta montado
-
-static inline void sblock_print() {
-
-  printf("%d", sbloques[0].numMagico);
-  printf("%d", sbloques[0].numInodos);
-  printf("%d", sbloques[0].numBloquesMapaInodos);
-  printf("%d", sbloques[0].numBloquesMapaDatos);
-  printf("%d", sbloques[0].primerInodo);
-  printf("%d", sbloques[0].numBloquesDatos);
-  printf("%d", sbloques[0].primerBloqueDatos);
-  printf("%d", sbloques[0].tamDispositivo);
-
-  printf("\n");
-}
